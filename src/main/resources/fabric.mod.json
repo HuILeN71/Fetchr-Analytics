@@ -1,0 +1,40 @@
+{
+	"schemaVersion": 1,
+	"id": "fetchranalytics",
+	"version": "${version}",
+	"name": "Fetchr Analytics",
+	"description": "This is a mod that save the analytics of your Fetchr bingo runs!",
+	"authors": [
+		"HuILeN71"
+	],
+	"contact": {
+		"homepage": "https://fabricmc.net/",
+		"sources": "https://github.com/HuILeN71/Fetchr-Analytics"
+	},
+	"license": "MIT",
+	"icon": "assets/fetchranalytics/icon.png",
+	"environment": "*",
+	"entrypoints": {
+		"main": [
+			"nl.dacolina.fetchranalytics.FetchrAnalytics"
+		],
+		"fabric-datagen": [
+			"nl.dacolina.fetchranalytics.FetchrAnalyticsDataGenerator"
+		],
+		"client": [
+			"nl.dacolina.fetchranalytics.FetchrAnalyticsClient"
+		]
+	},
+	"mixins": [
+		"fetchranalytics.mixins.json"
+	],
+	"depends": {
+		"fabricloader": ">=0.16.9",
+		"minecraft": "~1.21.3",
+		"java": ">=21",
+		"fabric-api": "*"
+	},
+	"suggests": {
+		"another-mod": "*"
+	}
+}
