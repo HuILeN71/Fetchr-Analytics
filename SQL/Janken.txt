@@ -1,0 +1,27 @@
+(fetchr.state) Game_state = 2 betekent in lobby
+(fetchr.state) Game_state = 3 betekent game begonnen
+
+
+/tag 1yoctoiq list = has_slot(x) voor een item die iemand heeft
+
+/data get storage fetchr:card teams[{id:"fetchr:yellow"}].hasBingo checken of dat een team een rij heeft ja of nee
+
+/data get storage fetchr:card slots[{id:0}].item.item.id Krijg het item op de bingo kaart
+
+
+
+
+Array []
+
+Array[
+	Yellow [
+		0  =  "1yoctoiq",
+		1  =  "henkkkus"
+	
+	],
+
+	Magenta [
+		"grass_block" =  "stofzoggoe",
+		"diamond_hoe" = "bouwfreek"  
+	
+]
