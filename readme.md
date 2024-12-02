@@ -3,5 +3,8 @@ This is an add-on for a Minecraft bingo datapack created by <name>! It aims to l
 
 # Road-map
 - [ ] Store all run information in a database (MariaDB)
+   - [ ] Design the database
+   - [ ] Plan how to obtain data
+   - [ ] Write Fabric mod to gather data and store it in the database 
 - [ ] Add Discord compatibility
 - [ ] Create a web application that can give you deep insights into runs
