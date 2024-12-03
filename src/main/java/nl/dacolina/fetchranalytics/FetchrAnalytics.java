@@ -17,4 +17,5 @@ public class FetchrAnalytics implements ModInitializer {
 	@Override
 	public void onInitialize() {
 
+	}
 }
