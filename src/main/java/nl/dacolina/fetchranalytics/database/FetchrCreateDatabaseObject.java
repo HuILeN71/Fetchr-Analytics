@@ -1,6 +1,6 @@
-package nl.dacolina.fetchranalytics;
+package nl.dacolina.fetchranalytics.database;
 
-public class FetchrAnalyticsSQL {
+public class FetchrCreateDatabaseObject {
     public String db_url;
     public String db_port;
     public String db_user;
@@ -8,7 +8,7 @@ public class FetchrAnalyticsSQL {
     public String db;
     public String connectionString;
 
-    public FetchrAnalyticsSQL(String db_url, String db_port, String db_user, String db_password, String db) {
+    public FetchrCreateDatabaseObject(String db_url, String db_port, String db_user, String db_password, String db) {
         this.db = db;
         this.db_url = db_url;
         this.db_port = db_port;
@@ -20,6 +20,7 @@ public class FetchrAnalyticsSQL {
 
     private String createConnectString(String db_url, String db_port, String db) {
         return "jdbc:mysql://" + db_url + ':' + db_port + '/' + db;
+
     }
 
 }
