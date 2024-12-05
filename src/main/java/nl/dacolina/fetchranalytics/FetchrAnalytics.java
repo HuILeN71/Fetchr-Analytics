@@ -1,7 +1,7 @@
 package nl.dacolina.fetchranalytics;
 
 import net.fabricmc.api.ModInitializer;
-
+import nl.dacolina.fetchranalytics.onstartup.OnStartUp;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -16,6 +16,6 @@ public class FetchrAnalytics implements ModInitializer {
 
 	@Override
 	public void onInitialize() {
-
+		OnStartUp.runStartUpProgram();
 	}
 }
