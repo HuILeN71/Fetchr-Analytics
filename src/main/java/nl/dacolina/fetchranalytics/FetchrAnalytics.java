@@ -16,6 +16,6 @@ public class FetchrAnalytics implements ModInitializer {
 
 	@Override
 	public void onInitialize() {
-		OnStartUp.runStartUpProgram();
+		String[] errors = OnStartUp.runStartUpProgram();
 	}
 }

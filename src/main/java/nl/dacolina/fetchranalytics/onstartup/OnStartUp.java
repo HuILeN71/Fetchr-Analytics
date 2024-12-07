@@ -6,18 +6,27 @@ import nl.dacolina.fetchranalytics.FetchrAnalytics;
 
 public class OnStartUp {
 
-    public static boolean runStartUpProgram() {
+    public static String[] errors;
+
+    public static String[] runStartUpProgram() {
         FetchrAnalytics.LOGGER.info("Running start-up checks!");
 
         // check for datapack available
 
-        // Check for settings file: fetchr-analytics-settings.toml
+        // Create a config object
+        Config config = new Config();
 
-        // If not exist create a file
+        // Check if config has errors
+        if (config.error.isEmpty()) {
+            errors[errors.length - 1] = config.error;
+        }
 
-        // read the file
+        // Make sure database is reachable
+        if(CheckDatabase.ableToConnect(config.getConnectString(), config.getDatabaseUser(), config.getUserPassword())) {
 
-        // Check wether database/ tables exist
+        }
+
+        // Check whether database/ tables exist
 
         // if not exist create all tables
 
@@ -27,7 +36,7 @@ public class OnStartUp {
 
         // Give ready status
 
-        return false;
+        return errors;
     }
 
     private static boolean checkIfTablesExistInDatabase() {
