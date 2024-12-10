@@ -13,12 +13,15 @@ import java.nio.file.Path;
 
 public class Config {
 
+    private static final String[] DATABASE_TABLES = {"game", "teams", "players", "teamInGame", "categories", "items",
+            "itemHistoryInCategory", "itemsInGame", };
     private static final String CONFIG_FILE_NAME = "fetchranalytics-settings.toml";
     private static File configFile;
 
     private String connectString;
     private String userName;
     private String password;
+    private String databaseName;
     public String error = "";
 
     public Config() {
@@ -111,9 +114,9 @@ public class Config {
                         this.error += "Missing port in config file!";
                     }
 
-                    String databaseName = databaseSettings.getString("name");
+                    this.databaseName = databaseSettings.getString("name");
 
-                    if(databaseName == null || databaseName.isEmpty()) {
+                    if(this.databaseName == null || this.databaseName.isEmpty()) {
                         this.error += "Missing database name in config file!";
                     }
 
@@ -158,6 +161,14 @@ public class Config {
 
     public String getUserPassword() {
         return this.password;
+    }
+
+    public String getDatabaseName() {
+        return this.databaseName;
+    }
+
+    public static String[] getDatabaseTables() {
+        return DATABASE_TABLES;
     }
 
 }

@@ -51,10 +51,14 @@ CREATE TABLE IF NOT EXISTS items (
     PRIMARY KEY (mc_id)
 );
 
-CREATE TABLE IF NOT EXISTS itemInCategory (
+CREATE TABLE IF NOT EXISTS itemHistoryInCategory (
+    history_id int NOT NULL AUTO_INCREMENT,
     mc_id varchar(100) NOT NULL,
     fetchr_category_id varchar(100) NOT NULL,
     itemWeightCategory tinyint DEFAULT 1,
+    startDate TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    endDate TIMESTAMP NULL,  
+    PRIMARY KEY (history_id),
     CONSTRAINT FK_mc_id_itemInCategory_items FOREIGN KEY (mc_id)
     REFERENCES items(mc_id),
     CONSTRAINT FK_fetchrCategory_itemInCategory_categories FOREIGN KEY (fetchr_category_id)
