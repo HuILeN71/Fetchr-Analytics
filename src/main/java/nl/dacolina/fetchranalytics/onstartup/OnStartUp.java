@@ -34,6 +34,7 @@ public class OnStartUp {
                 // if not exist create all tables
                 FetchrAnalytics.LOGGER.info("Not all tables exist or database has not yet been initialized!");
 
+                CheckDatabase.constructDatabase();
 
             }
 
