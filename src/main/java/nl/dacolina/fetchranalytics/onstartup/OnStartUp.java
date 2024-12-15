@@ -1,6 +1,7 @@
 package nl.dacolina.fetchranalytics.onstartup;
 
 import nl.dacolina.fetchranalytics.database.FetchrCreateDatabaseObject;
+import nl.dacolina.fetchranalytics.managers.DatabaseManager;
 import org.slf4j.Logger;
 import nl.dacolina.fetchranalytics.FetchrAnalytics;
 
@@ -21,13 +22,15 @@ public class OnStartUp {
             errors[0] = config.error;
         }
 
+        DatabaseManager.createConnectionPool(config.getConnectString(), config.getDatabaseUser(), config.getUserPassword());
+
         // Make sure database is reachable
-        if(CheckDatabase.ableToConnect(config.getConnectString(), config.getDatabaseUser(), config.getUserPassword())) {
+        if(CheckDatabase.ableToConnect()) {
             // Check whether database/ tables exist
 
             FetchrAnalytics.LOGGER.info("Database is reachable and ready to be used!");
 
-            if (!CheckDatabase.areAllTablesAvailable(config.getConnectString(), config.getDatabaseUser(), config.getUserPassword(), config.getDatabaseName())) {
+            if (!CheckDatabase.areAllTablesAvailable(config.getDatabaseName())) {
                 // if not exist create all tables
                 FetchrAnalytics.LOGGER.info("Not all tables exist or database has not yet been initialized!");
 

@@ -1,15 +1,19 @@
 package nl.dacolina.fetchranalytics.onstartup;
 
 import nl.dacolina.fetchranalytics.FetchrAnalytics;
+import nl.dacolina.fetchranalytics.managers.DatabaseManager;
 
 import java.sql.*;
 import java.util.ArrayList;
 
 public class CheckDatabase {
 
-    public static boolean areAllTablesAvailable(String connectUrl, String userName, String password, String databaseName) {
+    public static boolean areAllTablesAvailable(String databaseName) {
         try {
-            Connection dbConn = DriverManager.getConnection(connectUrl, userName, password);
+
+            FetchrAnalytics.LOGGER.info("Test");
+
+            Connection dbConn = DatabaseManager.getConnection();
 
             String query = queryConstructerHelper(databaseName);
 
@@ -47,6 +51,8 @@ public class CheckDatabase {
                 }
             }
 
+            FetchrAnalytics.LOGGER.info(String.valueOf(foundTables));
+
             if (tables.length == foundTables.size()) {
                 return true;
             }
@@ -58,10 +64,10 @@ public class CheckDatabase {
         return false;
     }
 
-    public static boolean ableToConnect(String connectUrl, String userName, String password) {
+    public static boolean ableToConnect() {
 
         try {
-            DriverManager.getConnection(connectUrl, userName, password);
+            DatabaseManager.getConnection();
             return true;
 
         } catch (SQLException e) {

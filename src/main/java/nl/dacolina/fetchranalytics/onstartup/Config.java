@@ -134,7 +134,7 @@ public class Config {
 
                     if (this.error.isEmpty()) {
                         // If there are no errors Create the MYSQL Connector string.
-                        this.connectString = "jdbc:mysql://" + ip + ":" + port + "/" + databaseName;
+                        this.connectString = "jdbc:mariadb://" + ip + ":" + port + "/" + databaseName;
                     }
 
 
