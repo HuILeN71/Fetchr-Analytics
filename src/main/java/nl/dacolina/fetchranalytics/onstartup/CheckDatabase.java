@@ -166,9 +166,9 @@ public class CheckDatabase {
 
             // Allow for multi query if is success
 
-            String query = "'SET GLOBAL (DSQEC_RUN_MQ=1)";
-
-            PreparedStatement stmt = dbConn.prepareStatement(query);
+//            String query = "'SET GLOBAL (DSQEC_RUN_MQ=1)";
+//
+//            PreparedStatement stmt = dbConn.prepareStatement(query);
 
             return true;
 

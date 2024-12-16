@@ -1,6 +1,5 @@
 package nl.dacolina.fetchranalytics.onstartup;
 
-import nl.dacolina.fetchranalytics.database.FetchrCreateDatabaseObject;
 import nl.dacolina.fetchranalytics.managers.DatabaseManager;
 import org.slf4j.Logger;
 import nl.dacolina.fetchranalytics.FetchrAnalytics;
@@ -41,12 +40,6 @@ public class OnStartUp {
         } else {
             errors[1] = "Database cannot be reached at this time. Please make sure your settings are correct.";
         }
-
-        // Load all items in table with their category
-
-        // Set all the teams
-
-        // Give ready status
 
         return errors;
     }
