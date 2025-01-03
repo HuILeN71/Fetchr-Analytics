@@ -9,16 +9,68 @@ import nl.dacolina.fetchranalytics.managers.DatabaseManager;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Objects;
 
 public class AfterStartUp {
 
     public static void afterStartUp(MinecraftServer server) {
+
+        // Checking if all teams are present in the database!
         String[][] teams = retrieveTeamsFromServer(server);
 
         ArrayList<String> existingTeams = retrieveExistingTeamsInDatabase();
 
-        System.out.println(existingTeams);
+        String[][] teamsToAddDatabase = checkingForMissingTeams(teams, existingTeams);
 
+        if (teamsToAddDatabase[0][0] != null) {
+
+            FetchrAnalytics.LOGGER.info("Missing some teams, adding them!");
+            addTeamsToDatabse(teamsToAddDatabase);
+        }
+
+        // Check if all categories are loaded in the database!
+
+        // Check which categories are already in the database
+        ArrayList<String> missingCategories = Categories.getMissingCategories(server);
+
+        // Add missing categories to database, if arrayList has contents
+
+        if(!missingCategories.isEmpty()) {
+            Categories.addMissingCategoriesToDatabase(missingCategories);
+        }
+
+
+
+
+
+
+    }
+
+    public static String[][] checkingForMissingTeams(String[][] teamsFromGame, ArrayList<String> teamsFromDatabase) {
+
+        String[][] missingTeams = new String[teamsFromGame.length][2];
+
+        int counter = 0;
+
+        for (int i = 0; i < teamsFromGame.length; i++) {
+            if (!teamsFromDatabase.contains(teamsFromGame[i][0])) {
+
+                missingTeams[counter][0] = teamsFromGame[i][0];
+                missingTeams[counter][1] = teamsFromGame[i][1];
+
+                counter++;
+
+//                 Debug
+                 FetchrAnalytics.LOGGER.info(teamsFromGame[i][0] + " ---- " + teamsFromGame[i][1]);
+
+
+            }
+
+
+
+        }
+
+        return missingTeams;
 
     }
 
@@ -48,6 +100,56 @@ public class AfterStartUp {
 
         return teamsArray;
 
+    }
+
+    public static boolean addTeamsToDatabse(String[][] teamsToAdd) {
+
+        try {
+            Connection dbConn = DatabaseManager.getConnection();
+
+            // Create query
+
+            StringBuilder query = new StringBuilder("INSERT INTO teams (fetchr_team_id, displayName) VALUES ");
+
+            for (int i = 0; i < teamsToAdd.length; i++) {
+
+                if(i != teamsToAdd.length - 1) {
+                    query.append("(?, ?),");
+                } else {
+                    query.append("(?, ?);");
+                }
+
+                FetchrAnalytics.LOGGER.info(String.valueOf(query));
+
+            }
+
+            // Prepare query
+
+            PreparedStatement stmt = dbConn.prepareStatement(String.valueOf(query));
+
+            // Fill all the question marks
+
+            int j = 1;
+
+            for (int i = 0; i < teamsToAdd.length; i++) {
+                stmt.setString(j, teamsToAdd[i][0]);
+
+                j++;
+
+                stmt.setString(j, teamsToAdd[i][1]);
+
+                j++;
+
+            }
+
+            stmt.execute();
+
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        return false;
     }
 
     public static String[][] craftDisplayName(String[][] teams) {
