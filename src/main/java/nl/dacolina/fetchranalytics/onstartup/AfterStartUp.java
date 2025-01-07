@@ -39,9 +39,9 @@ public class AfterStartUp {
             Categories.addMissingCategoriesToDatabase(missingCategories);
         }
 
+        // Init items
 
-
-
+        Items.getItemsFromGame(server);
 
 
     }

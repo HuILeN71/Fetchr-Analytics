@@ -22,7 +22,7 @@ public class Categories {
 
         NbtList categories = nbt.getList("categories", NbtElement.COMPOUND_TYPE);
 
-        FetchrAnalytics.LOGGER.info(String.valueOf(categories.size()));
+        FetchrAnalytics.LOGGER.info("Amount of categories present in game: " + String.valueOf(categories.size()));
 
         // Create an array the size of the amount of categories currently in game
         String[] categoriesInGame = new String[categories.size()];
@@ -32,7 +32,8 @@ public class Categories {
             String categoryId = category.getString("id");
             categoriesInGame[i] = categoryId;
 
-            System.out.println(categoryId + " - " + getCategoryDisplayName(categoryId));
+            //Debug
+            //System.out.println(categoryId + " - " + getCategoryDisplayName(categoryId));
 
         }
 
@@ -61,7 +62,7 @@ public class Categories {
             e.printStackTrace();
         }
 
-        System.out.println(existingCategories);
+        // System.out.println(existingCategories);
 
         return existingCategories;
 
