@@ -8,6 +8,8 @@ import net.minecraft.server.MinecraftServer;
 import net.minecraft.util.Identifier;
 import nl.dacolina.fetchranalytics.FetchrAnalytics;
 
+import java.util.Objects;
+
 public class Items {
 
     public static String[] getItemsFromGame(MinecraftServer server) {
@@ -26,21 +28,7 @@ public class Items {
         for(int i = 0; i < activeItems.size(); i++) {
             NbtCompound activeItem = activeItems.getCompound(i);
 
-            FetchrAnalytics.LOGGER.info(String.valueOf(i));
-
             NbtCompound item = activeItem.getCompound("item");
-
-            // Check for trimmed
-
-            String itemTests = null;
-
-            if(activeItem != null && activeItem.contains("active_tests")) {
-                NbtCompound item_tests = activeItem.getCompound("active_tests");
-
-                //item_tests = item_tests.getCompound(0);
-
-            }
-
 
             NbtList categories = activeItem.getList("categories", NbtElement.COMPOUND_TYPE);
 
@@ -48,18 +36,48 @@ public class Items {
 
             String itemId = item.getString("id");
 
+            // Check if item has components
 
-            // Check if item has potion components
-
+            // Add checks to see if items have these compounds, otherwise delete them. !YET TO ADD
             components.remove("minecraft:custom_name");
             components.remove("minecraft:lore");
 
             if (components != null && item.contains("components", NbtElement.COMPOUND_TYPE) && !components.isEmpty()) {
 
-                if (components.) {
+                if(activeItem.contains("item_tests", NbtElement.LIST_TYPE)) {
+                    NbtList itemTests = activeItem.getList("item_tests", NbtElement.COMPOUND_TYPE);
 
+                    NbtCompound normalizedActiveTests = itemTests.getCompound(0);
+
+                    String checkedComponent = normalizedActiveTests.getString("id");
+
+                    if (components.contains(checkedComponent)) {
+
+                        // Parts of the item checks
+                        NbtCompound partsOfItemChecks = normalizedActiveTests.getCompound("predicate");
+
+                        // Check if armor trim pattern is being checked. Manual for now, dont yet know how to implement
+                        // a way to make this completely dynamic. For now manual controls will be added to this section.
+
+                        FetchrAnalytics.LOGGER.info(checkedComponent);
+
+                        if(Objects.equals(checkedComponent, "minecraft:trim") && !partsOfItemChecks.contains("pattern")) {
+                            // Add any value so that database knows the difference between this item and one where a
+                            // certain trim is required. Also used to determine display name.
+
+                            partsOfItemChecks.putString("pattern", "minecraft:any");
+
+                            itemId += partsOfItemChecks;
+                        }
+
+
+                    }
+
+                } else {
+                    itemId += " -- " + components;
                 }
-                itemId += " -- " + components;
+
+
 
             }
 
