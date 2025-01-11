@@ -2,6 +2,8 @@ package nl.dacolina.fetchranalytics.onstartup;
 
 import net.fabricmc.loader.api.FabricLoader;
 import nl.dacolina.fetchranalytics.FetchrAnalytics;
+import nl.dacolina.fetchranalytics.managers.DatabaseManager;
+import nl.dacolina.fetchranalytics.managers.DatapackManager;
 import org.tomlj.Toml;
 import org.tomlj.TomlParseResult;
 import org.tomlj.TomlTable;
@@ -26,7 +28,11 @@ public class Config {
 
     public Config() {
         Path configDir = FabricLoader.getInstance().getConfigDir();
+        Path rootDir = FabricLoader.getInstance().getGameDir();
+
         configFile = new File(String.valueOf(configDir), CONFIG_FILE_NAME);
+
+        DatapackManager datapackManager = new DatapackManager(rootDir);
 
         if(!configFile.exists()) {
 
