@@ -1,6 +1,7 @@
 package nl.dacolina.fetchranalytics.managers;
 
 import nl.dacolina.fetchranalytics.FetchrAnalytics;
+import nl.dacolina.fetchranalytics.util.Zip;
 
 import java.io.*;
 import java.nio.file.Path;
@@ -35,7 +36,7 @@ public class DatapackManager {
             if(extractZipFile(datapackFolderPath, ZIPFILENAME, destinationPathExtractedFiles)) {
                 if(writeToEndOfFile(constructPathHelper(destinationPathExtractedFiles, SKYBOXFILE), createTagRemoveCommands(REMOVETAGCOMAND)) &&
                         writeToEndOfFile(constructPathHelper(destinationPathExtractedFiles, BACKGROUNDFILE), ADDTAGCOMMAND)) {
-
+                    Zip ZipFile = new Zip(destinationPathExtractedFiles,  datapackFolderPath, ZIPFILENAME);
                 }
             } else {
                 FetchrAnalytics.LOGGER.error("Something went wrong while extracting the datapack!");
