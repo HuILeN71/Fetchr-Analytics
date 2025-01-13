@@ -25,7 +25,7 @@ public class AfterStartUp {
         if (teamsToAddDatabase[0][0] != null) {
 
             FetchrAnalytics.LOGGER.info("Missing some teams, adding them!");
-            addTeamsToDatabse(teamsToAddDatabase);
+            addTeamsToDatabase(teamsToAddDatabase);
         }
 
         // Check if all categories are loaded in the database!
@@ -61,7 +61,7 @@ public class AfterStartUp {
                 counter++;
 
 //                 Debug
-                 FetchrAnalytics.LOGGER.info(teamsFromGame[i][0] + " ---- " + teamsFromGame[i][1]);
+                 FetchrAnalytics.LOGGER.debug(teamsFromGame[i][0] + " ---- " + teamsFromGame[i][1]);
 
 
             }
@@ -102,7 +102,7 @@ public class AfterStartUp {
 
     }
 
-    public static boolean addTeamsToDatabse(String[][] teamsToAdd) {
+    public static boolean addTeamsToDatabase(String[][] teamsToAdd) {
 
         try {
             Connection dbConn = DatabaseManager.getConnection();
@@ -119,7 +119,7 @@ public class AfterStartUp {
                     query.append("(?, ?);");
                 }
 
-                FetchrAnalytics.LOGGER.info(String.valueOf(query));
+                FetchrAnalytics.LOGGER.debug(String.valueOf(query));
 
             }
 

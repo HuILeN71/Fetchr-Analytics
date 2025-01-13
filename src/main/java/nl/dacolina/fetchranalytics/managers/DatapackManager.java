@@ -2,20 +2,23 @@ package nl.dacolina.fetchranalytics.managers;
 
 import net.lingala.zip4j.ZipFile;
 import net.lingala.zip4j.exception.ZipException;
+import net.lingala.zip4j.model.ZipParameters;
+import net.lingala.zip4j.model.enums.CompressionLevel;
+import net.lingala.zip4j.model.enums.CompressionMethod;
 import nl.dacolina.fetchranalytics.FetchrAnalytics;
-import nl.dacolina.fetchranalytics.util.Zip;
 
 import java.io.*;
+import java.nio.charset.Charset;
 import java.nio.file.*;
 import java.nio.file.attribute.BasicFileAttributes;
+import java.util.zip.Deflater;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
-import static nl.dacolina.fetchranalytics.util.Zip.zipFolder;
+import static org.lwjgl.system.linux.X11.True;
 
-// This manager will run at the start of the game and will check if the datapack is edited, if it is not, it will
-// add some custom modifications that are required for the game to work. It's only a few lines but mandatory.
 public class DatapackManager {
+
 
     private static final String ADDTAGCOMMAND = "\n" + "$tag @s add fetchranalytics.has_slot.$(slot_id)";
     private static final String REMOVETAGCOMAND = "tag @s remove fetchranalytics.has_slot.";
@@ -23,6 +26,7 @@ public class DatapackManager {
     private static final String TARGETFOLDERREGEX = "Fetchr-.*";
     private static final String PATHTODATAPACK = "datapacks";
     private static final String ZIPFILENAME = "Fetchr.zip";
+    private static final String STATCHRFILE = "statchr.rdy";
     private static final String SKYBOXFILE = "data" + File.separator + "fetchr" + File.separator +
             "function" + File.separator + "game" + File.separator + "skybox" + File.separator + "join_game.mcfunction";
     private static final String BACKGROUNDFILE = "data" + File.separator + "fetchr" + File.separator +
@@ -36,38 +40,77 @@ public class DatapackManager {
 
         if(datapackFolderPath != null) {
 
-            String destinationPathExtractedFiles = datapackFolderPath + File.separator + "extracted";
+            if (!new File(datapackFolderPath + File.separator + STATCHRFILE).exists()) {
 
-            if(extractZipFile(datapackFolderPath, ZIPFILENAME, destinationPathExtractedFiles)) {
-                if(writeToEndOfFile(constructPathHelper(destinationPathExtractedFiles, SKYBOXFILE), createTagRemoveCommands(REMOVETAGCOMAND)) &&
-                        writeToEndOfFile(constructPathHelper(destinationPathExtractedFiles, BACKGROUNDFILE), ADDTAGCOMMAND)) {
-                    //Zip.zipFolder(destinationPathExtractedFiles, datapackFolderPath + File.separator + ZIPFILENAME);
+                String zipFilePath = datapackFolderPath + File.separator + ZIPFILENAME;
+                String extractDir = datapackFolderPath + File.separator + "extracted"; // Temporary directory for extraction
 
-                    try {
-                        File zipFile = new File(datapackFolderPath + File.separator + ZIPFILENAME);
+                try {
 
-                        // Delete the existing zip file if it exists
-                        if (zipFile.exists()) {
-                            boolean deleted = zipFile.delete();
-                            if (deleted) {
-                                System.out.println("Existing zip file deleted: " + datapackFolderPath + File.separator + ZIPFILENAME);
-                            } else {
-                                System.out.println("Failed to delete the existing zip file: " + datapackFolderPath + File.separator + ZIPFILENAME);
-                            }
-                        }
-                        new ZipFile(datapackFolderPath + File.separator + ZIPFILENAME).addFolder(new File(destinationPathExtractedFiles));
-                    } catch (ZipException e) {
-                        e.printStackTrace();
+                    // Step 1: Extract files from the ZIP archive
+                    ZipFile zipFile = new ZipFile(zipFilePath);
+                    if (!zipFile.isEncrypted()) {
+                        zipFile.extractAll(extractDir); // Extract the entire contents of the ZIP
                     }
 
-                    deleteExtractedFolder(destinationPathExtractedFiles);
+                    // Step 2: Modify the files you need to edit
+                    writeToEndOfFile(extractDir + File.separator + SKYBOXFILE, createTagRemoveCommands(REMOVETAGCOMAND)); // Modify the skybox file to clear all the created tags
+                    writeToEndOfFile(extractDir + File.separator + BACKGROUNDFILE, ADDTAGCOMMAND); // Modify the background file to add the tag command
+
+                    // Step 3: Replace the original files in the ZIP with the modified ones
+//                    zipFile.removeFile(SKYBOXFILE);
+//                    zipFile.removeFile(BACKGROUNDFILE);
+
+                    ZipParameters zipParameters = new ZipParameters();
+                    zipParameters.setCompressionMethod(CompressionMethod.DEFLATE);
+                    zipParameters.setCompressionLevel(CompressionLevel.NORMAL);
+
+                    zipParameters.setIncludeRootFolder(false);
+
+                    // Delete the old zip file if it exists
+                    File oldZipFile = new File(zipFilePath);
+                    if (oldZipFile.exists()) {
+                        oldZipFile.delete();
+                    }
+
+                    ZipFile editedZip = new ZipFile(new File(zipFilePath));
+
+                    File directoryEditedFiles = new File(extractDir);
+
+                    editedZip.addFolder(directoryEditedFiles, zipParameters);
+
+
+//                    // Set path inside zip to skyboxfile
+//                    zipParameters.setFileNameInZip(SKYBOXFILE);
+//                    zipFile.addFile(new File(extractDir + File.separator + SKYBOXFILE), zipParameters);
+//
+//                    // Set path inside zip to background file;
+//                    zipParameters.setFileNameInZip(BACKGROUNDFILE);
+//                    zipFile.addFile(new File(extractDir + File.separator + BACKGROUNDFILE), zipParameters);
+//                    FetchrAnalytics.LOGGER.info("Datapack has been modified succesfully!");
+//
+//                    // Clean - up Task: Delete extracted Folder
+                    deleteExtractedFolder(extractDir);
+
+                    createStatchrFile(datapackFolderPath);
+
+                } catch (IOException e) {
+                    e.printStackTrace();
                 }
             } else {
-                FetchrAnalytics.LOGGER.error("Something went wrong while extracting the datapack!");
-                this.datapackIsInstalled = false;
+                FetchrAnalytics.LOGGER.info("The datapack has already been modified. No more work to do!");
             }
+        }
+
+    }
+
+    private static void createStatchrFile(String directory) throws IOException {
+        File statchrFile = new File(directory + File.separator + STATCHRFILE);
+
+        if(statchrFile.createNewFile()) {
+            FetchrAnalytics.LOGGER.debug("File already statchr.rdy has been created!");
         } else {
-            this.datapackIsInstalled = false;
+            FetchrAnalytics.LOGGER.debug("File already statchr.rdy exists!");
         }
 
     }
@@ -102,10 +145,10 @@ public class DatapackManager {
     private static boolean writeToEndOfFile(String pathToFile, String content) {
         try {
             writeLine(pathToFile, content);
-            System.out.println("Line added successfully!");
+            FetchrAnalytics.LOGGER.debug("Line added successfully!");
             return true;
         } catch (IOException e) {
-            System.err.println("An error occurred: " + e.getMessage());
+            FetchrAnalytics.LOGGER.debug("An error occurred: " + e.getMessage());
             return false;
         }
 
@@ -115,13 +158,9 @@ public class DatapackManager {
         // Open the file in append mode using FileWriter
         try (FileWriter fw = new FileWriter(filePath, true);
              BufferedWriter bw = new BufferedWriter(fw)) {
-                bw.write(lineToAdd); // Write the new line
-                bw.newLine(); // Add a newline character
+            bw.write(lineToAdd); // Write the new line
+            bw.newLine(); // Add a newline character
         }
-    }
-
-    private static String constructPathHelper(String pathToExtractedFolder, String datapackFile) {
-        return pathToExtractedFolder + File.separator + datapackFile;
     }
 
     private static String createTagRemoveCommands(String baseCommand) {
@@ -133,25 +172,6 @@ public class DatapackManager {
         }
 
         return allCommands.toString();
-
-    }
-
-    private static boolean extractZipFile(String folderPath, String zipFileName, String destinationPath) {
-        File zipFile = new File(folderPath, zipFileName);
-        File destinationDirectory = new File(destinationPath);
-
-        if (zipFile.exists() && zipFile.isFile()) {
-            try {
-                unzip(zipFile, destinationDirectory);
-                System.out.println("ZIP file extracted successfully to: " + destinationPath);
-                return true;
-            } catch (IOException e) {
-                System.err.println("Error while extracting ZIP file: " + e.getMessage());
-            }
-        } else {
-            System.err.println("ZIP file not found: " + zipFile.getAbsolutePath());
-        }
-        return false;
 
     }
 
@@ -184,35 +204,5 @@ public class DatapackManager {
         return null; // No matching folder found
     }
 
-    // Some kind of unzip function from the internet
-    private static void unzip(File zipFile, File destinationDir) throws IOException {
-        if (!destinationDir.exists()) {
-            destinationDir.mkdirs(); // Create destination directory if it doesn't exist
-        }
-
-        try (ZipInputStream zipIn = new ZipInputStream(new FileInputStream(zipFile))) {
-            ZipEntry entry;
-            while ((entry = zipIn.getNextEntry()) != null) {
-                File file = new File(destinationDir, entry.getName());
-                if (entry.isDirectory()) {
-                    file.mkdirs();
-                } else {
-                    File parentDir = file.getParentFile();
-                    if (!parentDir.exists()) {
-                        parentDir.mkdirs();
-                    }
-                    try (BufferedOutputStream bos = new BufferedOutputStream(new FileOutputStream(file))) {
-                        byte[] buffer = new byte[4096];
-                        int bytesRead;
-                        while ((bytesRead = zipIn.read(buffer)) != -1) {
-                            bos.write(buffer, 0, bytesRead);
-                        }
-                    }
-                }
-                zipIn.closeEntry();
-            }
-        }
-    }
-
-
 }
+

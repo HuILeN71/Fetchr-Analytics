@@ -124,13 +124,11 @@ public class CheckDatabase {
     public static boolean areAllTablesAvailable(String databaseName) {
         try {
 
-            FetchrAnalytics.LOGGER.info("Test");
-
             Connection dbConn = DatabaseManager.getConnection();
 
             String query = queryConstructerHelper(databaseName);
 
-            FetchrAnalytics.LOGGER.info(query);
+            FetchrAnalytics.LOGGER.debug(query);
 
             PreparedStatement stmt = dbConn.prepareStatement(query);
 
@@ -164,7 +162,7 @@ public class CheckDatabase {
                 }
             }
 
-            FetchrAnalytics.LOGGER.info(String.valueOf(foundTables));
+            FetchrAnalytics.LOGGER.debug(String.valueOf(foundTables));
 
             if (tables.length == foundTables.size()) {
                 return true;

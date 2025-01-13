@@ -5,6 +5,8 @@ import com.zaxxer.hikari.HikariDataSource;
 
 import java.sql.Connection;
 import java.sql.SQLException;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 public class DatabaseManager {
     private static HikariDataSource dataSource;
@@ -28,6 +30,7 @@ public class DatabaseManager {
         databaseConfig.setConnectionTimeout(CONNECTION_TIMEOUT);
         databaseConfig.setIdleTimeout(CONNECTION_IDLE_TIMEOUT);
         databaseConfig.setMaxLifetime(CONNECTION_MAX_LIFETIME);
+
 
         dataSource = new HikariDataSource(databaseConfig);
 

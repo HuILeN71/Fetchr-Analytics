@@ -22,7 +22,7 @@ public class Categories {
 
         NbtList categories = nbt.getList("categories", NbtElement.COMPOUND_TYPE);
 
-        FetchrAnalytics.LOGGER.info("Amount of categories present in game: " + String.valueOf(categories.size()));
+        FetchrAnalytics.LOGGER.debug("Amount of categories present in game: " + String.valueOf(categories.size()));
 
         // Create an array the size of the amount of categories currently in game
         String[] categoriesInGame = new String[categories.size()];

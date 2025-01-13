@@ -15,14 +15,18 @@ public class FetchrAnalytics implements ModInitializer {
 
 	@Override
 	public void onInitialize() {
+		FetchrAnalytics.LOGGER.info("Starting fetchranalytics v0.0.1...");
+
 		String[] errors = OnStartUp.runStartUpProgram();
+
+		FetchrAnalytics.LOGGER.info("Finished loading mod!");
 
 		// Register a callback for when the server starts
 		ServerLifecycleEvents.SERVER_STARTED.register(this::onServerStarted);
 	}
 
 	private void onServerStarted(MinecraftServer server) {
-		FetchrAnalytics.LOGGER.info("Test if this runs after server has started!!");
+		FetchrAnalytics.LOGGER.info("Running after start-up checks!");
 		AfterStartUp.afterStartUp(server);
 	}
 }

@@ -9,9 +9,7 @@ public class OnStartUp {
     public static String[] errors = {"N"};
 
     public static String[] runStartUpProgram() {
-        FetchrAnalytics.LOGGER.info("Running start-up checks!");
-
-        // check for datapack available
+        FetchrAnalytics.LOGGER.debug("Running start-up checks!");
 
         // Create a config object
         Config config = new Config();
