@@ -3,85 +3,52 @@ package nl.dacolina.fetchranalytics.util;
 import nl.dacolina.fetchranalytics.FetchrAnalytics;
 
 import java.io.*;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
 public class Zip {
 
-    private String destinationDirectory;
-    private String targetDirectory;
-    private String zipFileName;
 
-    public Zip(String destinationDirectory, String targetDirectory, String zipFileName) {
+    public static void zipFolder(String folderToZip, String zipFilePath) {
+        Path sourceFolder = Paths.get(folderToZip);
+        File zipFile = new File(zipFilePath);
 
-        this.zipFileName = zipFileName;
-        this.destinationDirectory = destinationDirectory;
-        this.targetDirectory = targetDirectory + File.separator + File.separator + this.zipFileName;
-
-        try {
-            File folderToZip = new File(this.destinationDirectory);
-
-            if (!folderToZip.exists()) {
-                throw new FileNotFoundException("The estracted folder was not found!");
+        // Delete the existing zip file if it exists
+        if (zipFile.exists()) {
+            boolean deleted = zipFile.delete();
+            if (deleted) {
+                System.out.println("Existing zip file deleted: " + zipFilePath);
+            } else {
+                System.out.println("Failed to delete the existing zip file: " + zipFilePath);
             }
-
-            try {
-
-                FetchrAnalytics.LOGGER.info("poep");
-
-                File zipFileObj = new File(this.targetDirectory);
-                if (zipFileObj.exists() && !zipFileObj.delete()) {
-                    throw new IOException("Failed to delete existing ZIP file: " + this.targetDirectory);
-                }
-
-                FileOutputStream fos = new FileOutputStream(this.targetDirectory);
-                ZipOutputStream zos = new ZipOutputStream(fos);
-
-
-                File[] files = folderToZip.listFiles();
-                if (files != null) {
-                    for (File file : files) {
-                        zipFolder(file, "", zos); // Pass an empty string for the base path
-                    }
-                }
-
-                fos.close();
-
-            } catch (Exception e) {
-                throw new RuntimeException(e);
-            }
-
-
-        } catch (IOException e) {
-
         }
 
 
-    }
+        try (ZipOutputStream zipOutputStream = new ZipOutputStream(new FileOutputStream(zipFilePath))) {
+            Files.walk(sourceFolder)
+                    .filter(path -> !Files.isDirectory(path))  // Exclude directories
+                    .forEach(path -> {
+                        try {
+                            // Create a relative path for the file inside the zip
+                            Path relativePath = sourceFolder.relativize(path);
 
-    private static void zipFolder(File file, String basePath, ZipOutputStream zos) throws IOException {
-        if (file.isDirectory()) {
-            // Recursively zip subfolders
-            File[] files = file.listFiles();
-            if (files != null) {
-                for (File child : files) {
-                    zipFolder(child, basePath + file.getName() + "/", zos);
-                }
-            }
-        } else {
-            // Add file to ZIP
-            try (FileInputStream fis = new FileInputStream(file)) {
-                String zipEntryName = basePath + file.getName();
-                System.out.println("Adding file to zip: " + zipEntryName);
-                zos.putNextEntry(new ZipEntry(zipEntryName));
+                            // Create a new ZipEntry for each file
+                            zipOutputStream.putNextEntry(new ZipEntry(relativePath.toString()));
 
-                byte[] buffer = new byte[1024];
-                int length;
-                while ((length = fis.read(buffer)) >= 0) {
-                    zos.write(buffer, 0, length);
-                }
-                zos.closeEntry();
-            }
+                            // Write the file content to the zip output stream
+                            Files.copy(path, zipOutputStream);
+
+                            // Close the current zip entry
+                            zipOutputStream.closeEntry();
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        }
+                    });
+        } catch (IOException e) {
+            e.printStackTrace();
         }
     }
 

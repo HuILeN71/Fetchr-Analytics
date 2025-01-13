@@ -2,8 +2,8 @@ package nl.dacolina.fetchranalytics.managers;
 
 import net.lingala.zip4j.ZipFile;
 import net.lingala.zip4j.exception.ZipException;
+import net.lingala.zip4j.model.ZipParameters;
 import nl.dacolina.fetchranalytics.FetchrAnalytics;
-import nl.dacolina.fetchranalytics.util.Zip;
 
 import java.io.*;
 import java.nio.file.*;
@@ -11,11 +11,8 @@ import java.nio.file.attribute.BasicFileAttributes;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
-import static nl.dacolina.fetchranalytics.util.Zip.zipFolder;
+public class DatapackManagerTest {
 
-// This manager will run at the start of the game and will check if the datapack is edited, if it is not, it will
-// add some custom modifications that are required for the game to work. It's only a few lines but mandatory.
-public class DatapackManager {
 
     private static final String ADDTAGCOMMAND = "\n" + "$tag @s add fetchranalytics.has_slot.$(slot_id)";
     private static final String REMOVETAGCOMAND = "tag @s remove fetchranalytics.has_slot.";
@@ -30,42 +27,102 @@ public class DatapackManager {
 
     private boolean datapackIsInstalled;
 
-    public DatapackManager(Path rootFolder) {
+    public DatapackManagerTest(Path rootFolder) {
         // Get the folder path, if null is returned that means the datapack is not installed
         String datapackFolderPath = findFetchrDatapackFolder(rootFolder);
 
         if(datapackFolderPath != null) {
 
-            String destinationPathExtractedFiles = datapackFolderPath + File.separator + "extracted";
+            // String destinationPathExtractedFiles = datapackFolderPath + File.separator + "extracted";
 
-            if(extractZipFile(datapackFolderPath, ZIPFILENAME, destinationPathExtractedFiles)) {
-                if(writeToEndOfFile(constructPathHelper(destinationPathExtractedFiles, SKYBOXFILE), createTagRemoveCommands(REMOVETAGCOMAND)) &&
-                        writeToEndOfFile(constructPathHelper(destinationPathExtractedFiles, BACKGROUNDFILE), ADDTAGCOMMAND)) {
-                    //Zip.zipFolder(destinationPathExtractedFiles, datapackFolderPath + File.separator + ZIPFILENAME);
+            String zipFilePath = datapackFolderPath + File.separator + ZIPFILENAME;
+            String fileNameInZip = BACKGROUNDFILE; // File inside the zip archive
+            String tempDir = datapackFolderPath + File.separator + "extracted"; // Temporary directory for extraction
+            String tempFilePath = tempDir + File.separator + fileNameInZip;
+            String tempZipPath = tempDir + File.separator + ZIPFILENAME;
 
-                    try {
-                        File zipFile = new File(datapackFolderPath + File.separator + ZIPFILENAME);
+            try {
+                // Load the original zip file
+                ZipFile originalZip = new ZipFile(zipFilePath);
 
-                        // Delete the existing zip file if it exists
-                        if (zipFile.exists()) {
-                            boolean deleted = zipFile.delete();
-                            if (deleted) {
-                                System.out.println("Existing zip file deleted: " + datapackFolderPath + File.separator + ZIPFILENAME);
-                            } else {
-                                System.out.println("Failed to delete the existing zip file: " + datapackFolderPath + File.separator + ZIPFILENAME);
-                            }
-                        }
-                        new ZipFile(datapackFolderPath + File.separator + ZIPFILENAME).addFolder(new File(destinationPathExtractedFiles));
-                    } catch (ZipException e) {
-                        e.printStackTrace();
-                    }
+                // Step 1: Extract the file to a temporary location
+                originalZip.extractFile(fileNameInZip, tempDir);
 
-                    deleteExtractedFolder(destinationPathExtractedFiles);
+                // Step 2: Modify the file
+                File tempFile = new File(tempFilePath);
+                try (FileWriter writer = new FileWriter(tempFile, true)) { // Append mode
+                    writer.write("\nNew content added to the file.");
                 }
-            } else {
-                FetchrAnalytics.LOGGER.error("Something went wrong while extracting the datapack!");
-                this.datapackIsInstalled = false;
+
+                // Step 3: Create a new zip file without the original file
+                ZipFile updatedZip = new ZipFile(tempZipPath);
+
+                originalZip.getFileHeaders().forEach(header -> {
+                    try {
+                        String fileName = header.getFileName();
+                        if (!fileName.equals(fileNameInZip)) {
+                            // Add files other than the one being replaced
+                            InputStream inputStream = originalZip.getInputStream(header);
+                            ZipParameters parameters = new ZipParameters();
+                            parameters.setFileNameInZip(fileName);
+                            updatedZip.addStream(inputStream, parameters);
+                        }
+                    } catch (IOException e) {
+                        System.err.println("Error copying file to new zip: " + e.getMessage());
+                    }
+                });
+
+                // Step 4: Add the modified file to the new zip
+                updatedZip.addFile(tempFile);
+
+                // Step 5: Replace the original zip with the new zip
+                File originalZipFile = new File(zipFilePath);
+                File newZipFile = new File(tempZipPath);
+
+                if (originalZipFile.delete() && newZipFile.renameTo(originalZipFile)) {
+                    System.out.println("File replaced successfully in the zip archive.");
+                } else {
+                    System.err.println("Failed to replace the original zip file.");
+                }
+
+                // Cleanup: Delete the temporary file
+                tempFile.delete();
+
+            } catch (ZipException e) {
+                System.err.println("Error handling the zip file: " + e.getMessage());
+            } catch (IOException e) {
+                System.err.println("Error modifying the file: " + e.getMessage());
             }
+
+//            if(extractZipFile(datapackFolderPath, ZIPFILENAME, destinationPathExtractedFiles)) {
+
+//                if(writeToEndOfFile(constructPathHelper(destinationPathExtractedFiles, SKYBOXFILE), createTagRemoveCommands(REMOVETAGCOMAND)) &&
+//                        writeToEndOfFile(constructPathHelper(destinationPathExtractedFiles, BACKGROUNDFILE), ADDTAGCOMMAND)) {
+//                    //Zip.zipFolder(destinationPathExtractedFiles, datapackFolderPath + File.separator + ZIPFILENAME);
+//
+//                    try {
+//                        File zipFile = new File(datapackFolderPath + File.separator + ZIPFILENAME);
+//
+//                        // Delete the existing zip file if it exists
+//                        if (zipFile.exists()) {
+//                            boolean deleted = zipFile.delete();
+//                            if (deleted) {
+//                                System.out.println("Existing zip file deleted: " + datapackFolderPath + File.separator + ZIPFILENAME);
+//                            } else {
+//                                System.out.println("Failed to delete the existing zip file: " + datapackFolderPath + File.separator + ZIPFILENAME);
+//                            }
+//                        }
+//                        new ZipFile(datapackFolderPath + File.separator + ZIPFILENAME).addFolder(new File(destinationPathExtractedFiles));
+//                    } catch (ZipException e) {
+//                        e.printStackTrace();
+//                    }
+//
+//                    deleteExtractedFolder(destinationPathExtractedFiles);
+//                }
+//            } else {
+//                FetchrAnalytics.LOGGER.error("Something went wrong while extracting the datapack!");
+//                this.datapackIsInstalled = false;
+//            }
         } else {
             this.datapackIsInstalled = false;
         }
@@ -115,8 +172,8 @@ public class DatapackManager {
         // Open the file in append mode using FileWriter
         try (FileWriter fw = new FileWriter(filePath, true);
              BufferedWriter bw = new BufferedWriter(fw)) {
-                bw.write(lineToAdd); // Write the new line
-                bw.newLine(); // Add a newline character
+            bw.write(lineToAdd); // Write the new line
+            bw.newLine(); // Add a newline character
         }
     }
 
