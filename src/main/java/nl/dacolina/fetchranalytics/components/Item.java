@@ -8,9 +8,17 @@ public class Item {
     private String minecraftItemName;
     private String component;
 
-    public Item(String itemName, String component ) {
+    public Item(String itemName, String component) {
         this.minecraftItemName = itemName;
         this.component = component;
+    }
+
+    public String getMinecraftItemName() {
+        return this.minecraftItemName;
+    }
+
+    public String getComponent() {
+        return this.component;
     }
 
 
