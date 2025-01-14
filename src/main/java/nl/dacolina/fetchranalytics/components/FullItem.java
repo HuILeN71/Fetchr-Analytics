@@ -12,8 +12,8 @@ public class FullItem extends Item{
         this.categories = new ArrayList<>();
     }
 
-    public void addCategoryToItem(Category category) {
-        categories.add(category);
+    public void addCategoryToItem(String categoryName, int categoryWeight) {
+        categories.add(new Category(categoryName, categoryWeight));
     }
 
     public List<Category> getCategories() {

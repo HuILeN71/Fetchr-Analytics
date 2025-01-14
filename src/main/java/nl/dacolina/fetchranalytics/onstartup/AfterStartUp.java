@@ -5,6 +5,7 @@ import net.minecraft.scoreboard.Team;
 import net.minecraft.server.MinecraftServer;
 import nl.dacolina.fetchranalytics.FetchrAnalytics;
 import nl.dacolina.fetchranalytics.managers.DatabaseManager;
+import nl.dacolina.fetchranalytics.managers.ItemManager;
 
 import java.sql.*;
 import java.util.ArrayList;
@@ -41,7 +42,7 @@ public class AfterStartUp {
 
         // Init items
 
-        Items.getItemsFromGame(server);
+        ItemManager itemManager = new ItemManager(server);
 
 
     }
