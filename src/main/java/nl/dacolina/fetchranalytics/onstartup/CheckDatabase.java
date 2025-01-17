@@ -9,7 +9,7 @@ import java.util.ArrayList;
 public class CheckDatabase {
     private static final String DB_CREATION_SCRIPT_SERVERS = """
             CREATE TABLE IF NOT EXISTS servers (
-            	server_id int NOT NULL,
+            	server_id int NOT NULL AUTO_INCREMENT,
             	serverName varchar(255) NOT NULL,
             	password varchar(255) NOT NULL,
             	PRIMARY KEY (server_id),

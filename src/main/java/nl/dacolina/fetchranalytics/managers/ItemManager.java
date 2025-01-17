@@ -10,18 +10,16 @@ import nl.dacolina.fetchranalytics.FetchrAnalytics;
 import nl.dacolina.fetchranalytics.components.Category;
 import nl.dacolina.fetchranalytics.components.FullItem;
 
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.SQLException;
-import java.sql.Types;
+import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
 public class ItemManager {
 
+    private static final int TEMP_SERVER_ID = 1;
     private static final int AMOUNT_COLUMNS_ITEM_TABLE = 4;
-    private static final int AMOUNT_COLUMNS_HISTORY_TABLE = 0;
+    private static final int AMOUNT_COLUMNS_HISTORY_TABLE = 4;
 
     private List<FullItem> itemsCurrentlyInGame;
     private List<FullItem> itemsCurrentlyInDatabase;
@@ -32,9 +30,9 @@ public class ItemManager {
 
         //FetchrAnalytics.LOGGER.info(this.itemsCurrentlyInGame.toString());
 
-        createItemsInDatabase(this.itemsCurrentlyInGame);
+        // createItemsInDatabase(this.itemsCurrentlyInGame);
 
-
+        createMissingCategoriesInHistory(this.itemsCurrentlyInGame, TEMP_SERVER_ID);
 
 
     }
@@ -193,12 +191,141 @@ public class ItemManager {
             e.printStackTrace();
         }
 
+    }
+
+    private static List<FullItem> setAllItemIDsHelper(List<FullItem> items) {
+
+        // Init query string
+        StringBuilder query = new StringBuilder("SELECT item_id, mc_id, components FROM items WHERE ");
+        boolean isFirst = true;
+
+        // Construct query to get all the id's from the necessary items
+        for (FullItem item : items) {
+            //Always add item name to query
+
+            if(isFirst) {
+                query.append("(mc_id = ?");
+                isFirst = false;
+            } else {
+                query.append(" OR (mc_id = ?");
+            }
+
+            // If component is not null add components value
+            if(item.getComponent() != null) {
+                query.append(" AND components = ?)");
+            } else {
+                query.append(")");
+            }
+
+        }
+
+        // Create counter
+        int counter = 1;
+
+        try {
+            // Create connection and create prepared query
+            Connection dbConn = DatabaseManager.getConnection();
+            PreparedStatement stmt = dbConn.prepareStatement(query.toString());
+
+            // set all values
+            for (FullItem item : items) {
+                // Item name and increase counter
+                stmt.setString(counter, item.getMinecraftItemName());
+                counter++;
+
+                if(item.getComponent() != null) {
+                    // Set component and increase counter
+                    stmt.setString(counter, item.getComponent());
+                    counter++;
+                }
+            }
+
+            ResultSet rs = stmt.executeQuery();
+
+            while (rs.next()) {
+                FetchrAnalytics.LOGGER.debug(rs.getInt("item_id") + " -- " + rs.getString("mc_id") + " -- " + rs.getString("components"));
+
+                for(FullItem item : items) {
+                    if(Objects.equals(item.getMinecraftItemName(), rs.getString("mc_id")) && Objects.equals(item.getComponent(), rs.getString("components"))) {
+                        item.setDatabaseItemID(rs.getInt("item_id"));
+                    }
+                }
+            }
 
 
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        // debugItemInformation(items);
+
+        FetchrAnalytics.LOGGER.debug(query.toString());
+
+        return items;
 
     }
 
-    private static void createMissingCategoriesInHistory() {
+    private static int categoryCounterHelper (List<FullItem> items) {
+
+        int totalCategoryCount = 0;
+
+        for (FullItem item : items) {
+
+            List<Category> categories = item.getCategories();
+
+            totalCategoryCount += categories.size();
+        }
+
+        return totalCategoryCount;
+    }
+
+
+    private static void createMissingCategoriesInHistory(List<FullItem> items, int serverID) {
+
+        int rows = categoryCounterHelper(items);
+
+        List<FullItem> updatedItems = setAllItemIDsHelper(items);
+
+        String queryArguments = argumentsBuilderDatabaseQuery(AMOUNT_COLUMNS_HISTORY_TABLE, rows);
+
+        String query = "INSERT INTO itemHistoryInCategory (item_id, fetchr_category_id, itemWeightCategory, server_id) VALUES" + queryArguments;
+
+        try {
+            Connection dbConn = DatabaseManager.getConnection();
+            PreparedStatement stmt = dbConn.prepareStatement(query);
+
+            // Start counter
+            int counter = 1;
+            for (FullItem item : updatedItems) {
+                // Count based on category after, because item can have multiple categories!
+                for(Category category : item.getCategories()) {
+                    // Set Item ID
+                    stmt.setInt(counter, item.getDatabaseItemID());
+                    // Increase counter
+                    counter++;
+
+                    // Set current category
+                    stmt.setString(counter, category.getCategoryName());
+                    // Increase counter
+                    counter++;
+
+                    stmt.setInt(counter, category.getCategoryWeight());
+                    // Increase counter
+                    counter++;
+
+                    stmt.setInt(counter, serverID);
+                    // Increase counter
+                    counter++;
+                }
+
+            }
+
+            stmt.execute();
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
 
     }
 
@@ -234,6 +361,10 @@ public class ItemManager {
         for (FullItem itemFromList : items) {
 
             StringBuilder s = new StringBuilder();
+
+            if(itemFromList.getDatabaseItemID() != 0) {
+                s.append("id: " + itemFromList.getDatabaseItemID() + " -- ");
+            }
 
             s.append(itemFromList.getMinecraftItemName());
 

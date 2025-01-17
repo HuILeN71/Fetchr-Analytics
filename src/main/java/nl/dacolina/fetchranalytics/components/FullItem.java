@@ -7,6 +7,7 @@ public class FullItem extends Item{
 
     private List<Category> categories;
     private String displayName;
+    private int databaseItemID;
 
     public FullItem(String minecraftItemId, String component) {
         super(minecraftItemId, component);
@@ -42,4 +43,11 @@ public class FullItem extends Item{
         return minecraftItemId.replaceFirst("minecraft:", "");
     }
 
+    public void setDatabaseItemID(int databaseItemID) {
+        this.databaseItemID = databaseItemID;
+    }
+
+    public int getDatabaseItemID() {
+        return this.databaseItemID;
+    }
 }
