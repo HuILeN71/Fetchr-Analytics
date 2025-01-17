@@ -9,9 +9,11 @@ import net.minecraft.util.Identifier;
 import nl.dacolina.fetchranalytics.FetchrAnalytics;
 import nl.dacolina.fetchranalytics.components.Category;
 import nl.dacolina.fetchranalytics.components.FullItem;
+import nl.dacolina.fetchranalytics.components.Item;
 
 import java.sql.*;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
 
@@ -30,9 +32,10 @@ public class ItemManager {
 
         //FetchrAnalytics.LOGGER.info(this.itemsCurrentlyInGame.toString());
 
-        // createItemsInDatabase(this.itemsCurrentlyInGame);
+        // This function is going to retrieve information from the database to see weather an item is in the database or not
+        createMissingItemsInDatabase(this.itemsCurrentlyInGame);
 
-        createMissingCategoriesInHistory(this.itemsCurrentlyInGame, TEMP_SERVER_ID);
+        // createMissingCategoriesInHistory(this.itemsCurrentlyInGame, TEMP_SERVER_ID);
 
 
     }
@@ -138,9 +141,60 @@ public class ItemManager {
         return listOfItems;
     }
 
+    // This function retrieves simple item data, so that items can be compared and if it needs to be added to the database.
+    private static List<Item> getSimpleItemsFromDatabase() {
+
+        List<Item> itemsFromDatabase = new ArrayList<>();
+
+        // Set query
+        String query = "SELECT mc_id, components FROM items";
+
+        try {
+
+            Connection dbConn = DatabaseManager.getConnection();
+            PreparedStatement stmt = dbConn.prepareStatement(query);
+
+            ResultSet rs = stmt.executeQuery();
+
+            while(rs.next()) {
+                itemsFromDatabase.add(new Item(rs.getString("mc_id"), rs.getString("components")));
+            }
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        return itemsFromDatabase;
+    }
+
+
+    private static void createMissingItemsInDatabase(List<FullItem> items) {
+
+        List<Item> itemsAlreadyInDatabase = getSimpleItemsFromDatabase();
+
+        Iterator<FullItem> iterator = items.iterator();
+
+        while (iterator.hasNext()) {
+
+            FullItem item = iterator.next();
+
+            for (Item itemInDB : itemsAlreadyInDatabase) {
+                if (Objects.equals(itemInDB.getMinecraftItemName(), item.getMinecraftItemName()) && Objects.equals(itemInDB.getComponent(), item.getComponent())) {
+                    iterator.remove();
+                }
+            }
+        }
+
+        if(!items.isEmpty()) {
+            createItemsInDatabase(items);
+        }
+
+
+    }
+
     private static void createItemsInDatabase (List<FullItem> itemsToAdd) {
         String queryArguments = argumentsBuilderDatabaseQuery(AMOUNT_COLUMNS_ITEM_TABLE, itemsToAdd.size());
-        FetchrAnalytics.LOGGER.debug(queryArguments);
+        FetchrAnalytics.LOGGER.info(queryArguments);
 
         // Create full query
         String query = "INSERT INTO items (mc_id, components, displayName, availableOnDisk) VALUES " + queryArguments;
@@ -161,7 +215,7 @@ public class ItemManager {
                 counter++;
 
                 // Set null on the component when none is provided
-                FetchrAnalytics.LOGGER.info(item.getComponent());
+                FetchrAnalytics.LOGGER.debug(item.getComponent());
 
                 if (item.getComponent() != null) {
                     stmt.setString(counter, item.getComponent());
