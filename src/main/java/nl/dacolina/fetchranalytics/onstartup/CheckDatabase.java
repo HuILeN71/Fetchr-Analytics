@@ -79,7 +79,7 @@ public class CheckDatabase {
             CREATE TABLE IF NOT EXISTS items (
                 item_id int NOT NULL AUTO_INCREMENT,
                 mc_id varchar(100) NOT NULL,
-                components JSON NULL,
+                components varchar(255) NULL,
                 displayName varchar(100) DEFAULT 'Red Bed',
                 itemFileLocation varchar(255) NULL,
                 availableOnDisk boolean NOT NULL,

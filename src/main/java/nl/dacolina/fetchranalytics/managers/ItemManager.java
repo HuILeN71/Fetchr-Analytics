@@ -7,13 +7,21 @@ import net.minecraft.network.packet.c2s.play.PlayerMoveC2SPacket;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.util.Identifier;
 import nl.dacolina.fetchranalytics.FetchrAnalytics;
+import nl.dacolina.fetchranalytics.components.Category;
 import nl.dacolina.fetchranalytics.components.FullItem;
 
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.SQLException;
+import java.sql.Types;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
 public class ItemManager {
+
+    private static final int AMOUNT_COLUMNS_ITEM_TABLE = 4;
+    private static final int AMOUNT_COLUMNS_HISTORY_TABLE = 0;
 
     private List<FullItem> itemsCurrentlyInGame;
     private List<FullItem> itemsCurrentlyInDatabase;
@@ -24,6 +32,7 @@ public class ItemManager {
 
         //FetchrAnalytics.LOGGER.info(this.itemsCurrentlyInGame.toString());
 
+        createItemsInDatabase(this.itemsCurrentlyInGame);
 
 
 
@@ -40,14 +49,6 @@ public class ItemManager {
     private static List<FullItem> getItemsLoadedInGame(MinecraftServer server) {
 
         List<FullItem> listOfItems = new ArrayList<>();
-
-//        FullItem item = new FullItem("minecraft:bucket", "{poison: \"stront\"}");
-//        item.addCategoryToItem("fetchr:buckets", 2);
-//
-//        listOfItems.add(item);
-
-//        for (FullItem itemFromList : listOfItems) {
-//            System.out.println(itemFromList.getMinecraftItemName() + itemFromList.getComponent() + " - " + itemFromList.getCategories().getFirst().getCategoryName() + ", " + itemFromList.getCategories().getFirst().getCategoryWeight());
 
         //Load the items storage
         Identifier storageId = Identifier.of("fetchr", "items");
@@ -96,15 +97,17 @@ public class ItemManager {
 
                         FetchrAnalytics.LOGGER.info(checkedComponent);
 
-                        if(Objects.equals(checkedComponent, "minecraft:trim") && !partsOfItemChecks.contains("pattern")) {
-                            // Add any value so that database knows the difference between this item and one where a
-                            // certain trim is required. Also used to determine display name.
+                        String engeString = "{\"" + checkedComponent + "\":" + partsOfItemChecks + "}";
 
-                            partsOfItemChecks.putString("pattern", "minecraft:any");
+//                        if(Objects.equals(checkedComponent, "minecraft:trim") && !partsOfItemChecks.contains("pattern")) {
+//                            // Add any value so that database knows the difference between this item and one where a
+//                            // certain trim is required. Also used to determine display name.
+//
+//                            partsOfItemChecks.putString("pattern", "minecraft:any");
+//
+//                        }
 
-                        }
-
-                        newItem = new FullItem(itemId, partsOfItemChecks.toString());
+                        newItem = new FullItem(itemId, engeString);
 
                     }
 
@@ -125,14 +128,128 @@ public class ItemManager {
 
                 newItem.addCategoryToItem(categoryName, categoryWeight);
 
-                FetchrAnalytics.LOGGER.info(itemId + " -- " + categoryName + " -- " + categoryWeight);
+                //FetchrAnalytics.LOGGER.info(itemId + " -- " + categoryName + " -- " + categoryWeight);
 
             }
+
+            listOfItems.add(newItem);
+
 
         }
 
         return listOfItems;
     }
 
+    private static void createItemsInDatabase (List<FullItem> itemsToAdd) {
+        String queryArguments = argumentsBuilderDatabaseQuery(AMOUNT_COLUMNS_ITEM_TABLE, itemsToAdd.size());
+        FetchrAnalytics.LOGGER.debug(queryArguments);
+
+        // Create full query
+        String query = "INSERT INTO items (mc_id, components, displayName, availableOnDisk) VALUES " + queryArguments;
+
+        try {
+            // Create connection and create prepared query
+            Connection dbConn = DatabaseManager.getConnection();
+            PreparedStatement stmt = dbConn.prepareStatement(query);
+
+            // Loop through items and set values and set counter
+            int counter = 1;
+
+            for (FullItem item : itemsToAdd) {
+                // MC_ID
+                stmt.setString(counter, item.getMinecraftItemName());
+
+                // Increase counter
+                counter++;
+
+                // Set null on the component when none is provided
+                FetchrAnalytics.LOGGER.info(item.getComponent());
+
+                if (item.getComponent() != null) {
+                    stmt.setString(counter, item.getComponent());
+                } else {
+                    stmt.setNull(counter, Types.VARCHAR);
+                }
+
+                // Increase counter
+                counter++;
+
+                // Set display name
+                stmt.setString(counter, item.getDisplayName());
+
+                // Increase counter
+                counter++;
+
+                // Set storagebit
+                stmt.setBoolean(counter, false);
+
+                // Increase counter
+                counter++;
+            }
+
+            stmt.execute();
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+
+
+
+    }
+
+    private static void createMissingCategoriesInHistory() {
+
+    }
+
+    private static String argumentsBuilderDatabaseQuery(int amountOfColumns, int amountOfRows) {
+        StringBuilder arguments = new StringBuilder();
+
+        for (int i = 0; i < amountOfRows; i++) {
+
+            if(i == 0) {
+                arguments.append("(");
+            } else {
+                arguments.append(", (");
+            }
+
+            for (int j = 0; j < amountOfColumns; j++) {
+
+                if(amountOfColumns - 1 != j) {
+                    arguments.append("?, ");
+                } else {
+                    arguments.append("?");
+                }
+
+            }
+
+            arguments.append(")");
+        }
+
+        return arguments.toString();
+
+    }
+
+    private static void debugItemInformation(List<FullItem> items) {
+        for (FullItem itemFromList : items) {
+
+            StringBuilder s = new StringBuilder();
+
+            s.append(itemFromList.getMinecraftItemName());
+
+            if(itemFromList.getComponent() != null) {
+                s.append(itemFromList.getComponent());
+            }
+
+            s.append(" aka. " + itemFromList.getDisplayName() + " - ");
+
+            for (Category category : itemFromList.getCategories()) {
+                s.append(category.getCategoryName() + ", " + category.getCategoryWeight() + " | ");
+            }
+
+            FetchrAnalytics.LOGGER.info(s.toString());
+
+        }
+    }
 }
 
