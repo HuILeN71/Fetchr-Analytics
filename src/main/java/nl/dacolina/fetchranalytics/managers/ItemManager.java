@@ -11,8 +11,10 @@ import nl.dacolina.fetchranalytics.components.Category;
 import nl.dacolina.fetchranalytics.components.FullItem;
 import nl.dacolina.fetchranalytics.components.Item;
 
+import java.awt.*;
 import java.sql.*;
 import java.util.*;
+import java.util.List;
 
 public class ItemManager {
 
@@ -200,7 +202,6 @@ public class ItemManager {
         String query = "INSERT INTO items (mc_id, components, displayName, availableOnDisk) VALUES " + queryArguments;
 
         try {
-            // Create connection and create prepared query
             Connection dbConn = DatabaseManager.getConnection();
             PreparedStatement stmt = dbConn.prepareStatement(query);
 
@@ -337,7 +338,7 @@ public class ItemManager {
     private static ResultSet getCurrentActiveCategoriesInDatabase() {
 
         String query = "SELECT items.item_id, items.mc_id, items.components, history_id, fetchr_category_id, itemWeightCategory, endDate " +
-                "FROM itemHistoryInCategory INNER JOIN items ON itemHistoryInCategory.item_id = items.item_id WHERE server_id = 1 or endDate = null";
+                "FROM itemHistoryInCategory INNER JOIN items ON itemHistoryInCategory.item_id = items.item_id WHERE server_id = 1 AND endDate IS NULL";
 
         try {
             Connection dbConn = DatabaseManager.getConnection();
@@ -352,6 +353,30 @@ public class ItemManager {
         return null;
     }
 
+    private static void disableCategories(List<Map<String, Object>> databaseRows) {
+
+        String baseQuery = "UPDATE itemHistoryInCategory SET endDate = NOW() WHERE history_id = (?)";
+
+        try {
+
+            Connection dbConn = DatabaseManager.getConnection();
+            PreparedStatement stmt = dbConn.prepareStatement(baseQuery);
+
+            for (Map<String, Object> row : databaseRows) {
+
+                stmt.setInt(1, (int) row.get("history_id"));
+                stmt.addBatch();
+            }
+
+            stmt.executeBatch();
+
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+    }
+
     private static void createMissingCategoriesInHistory(List<FullItem> items, int serverID) {
 
         // Items in the game currently
@@ -360,10 +385,8 @@ public class ItemManager {
         // Items with categories from the current server that are active in the database
         ResultSet rs = getCurrentActiveCategoriesInDatabase();
 
-        // Convert resultset into a map! (Apparently you can only go through a resultset once :( )
-        // Why map and not Full item class? Because history ID is needed. Maybe for the future?
+        // Convert ResultSet into a list of maps (activeDatabaseItems)
         List<Map<String, Object>> activeDatabaseItems = new ArrayList<>();
-
         try {
             while (rs.next()) {
                 Map<String, Object> row = new HashMap<>();
@@ -377,87 +400,60 @@ public class ItemManager {
             e.printStackTrace();
         }
 
+        // Process items to manage categories
+        List<Map<String, Object>> newCategories = new ArrayList<>();
+        List<Map<String, Object>> categoriesToDisable = new ArrayList<>();
 
-
+        // Track active categories in a map for faster lookup
+        Map<String, Map<String, Object>> activeCategoryMap = new HashMap<>();
         for (Map<String, Object> row : activeDatabaseItems) {
-            Iterator<FullItem> iterator = updatedItems.iterator();
+            String key = row.get("item_id") + ":" + row.get("fetchr_category_id") + ":" + row.get("itemWeightCategory");
+            activeCategoryMap.put(key, row);
+        }
 
-            while (iterator.hasNext()) {
+        boolean testRun = false;
 
-                FullItem currentItem = iterator.next();
+        // Iterate through items in the game
+        for (FullItem item : updatedItems) {
 
-                if((int) row.get("item_id") == currentItem.getDatabaseItemID()) {
-
-                }
+            if (!testRun) {
+                item.addCategoryToItem("fetchr:shipwreck", 2);
+                testRun = true;
             }
 
 
+            for (Category category : item.getCategories()) {
+                String key = item.getDatabaseItemID() + ":" + category.getCategoryName() + ":" + category.getCategoryWeight();
 
+                if (activeCategoryMap.containsKey(key)) {
+                    // Category exists in the database, leave it untouched
+                    activeCategoryMap.remove(key);
+                } else {
+                    // Category is new, add it to the list of new categories
+                    Map<String, Object> newCategory = new HashMap<>();
+                    newCategory.put("item_id", item.getDatabaseItemID());
+                    newCategory.put("fetchr_category_id", category.getCategoryName());
+                    newCategory.put("itemWeightCategory", category.getCategoryWeight());
+                    //newCategory.put("startDate", new Date()); // Assuming you need to set a start date
+
+                    FetchrAnalytics.LOGGER.info(newCategory.toString());
+
+                    newCategories.add(newCategory);
+                }
+            }
         }
 
-//        // Looping through the categories to see which items need to be added and which categories need to be updated.
-//        Iterator<FullItem> iterator = updatedItems.iterator();
-//
-//
-//        // Init statement with categories to update!
-//
-//        int counter2 = 0;
-//
-//        // Loop through items currently in game
-//        while (iterator.hasNext()) {
-//
-//            FullItem currentItem = iterator.next();
-//
-//            Iterator<Category> categoryIterator = currentItem.getCategories().iterator();
-//
-//            // Take only one category from the game at the time
-//            while (categoryIterator.hasNext()) {
-//                counter2++;
-//
-//                // Check if the current category contains the correct name and weight
-//                Category currentCategory = categoryIterator.next();
-//                // Find in database results
-//
-//                for (Map<String, Object> row : activeDatabaseItems) {
-//
-//                    if ((int) row.get("item_id") == currentItem.getDatabaseItemID()) {
-//
-////                            FetchrAnalytics.LOGGER.info(counter + ": " + currentCategory.getCategoryName() + " item name: " + currentItem.getMinecraftItemName());
-//                        // Check if category match with atleast one of the categories! Loop through categories in case the item has multiple categories.
-//                        if ((Objects.equals(currentCategory.getCategoryName(), row.get("fetchr_category_id"))) &&
-//                                (currentCategory.getCategoryWeight() == (int) row.get("itemWeightCategory"))) {
-//                            // This item is already in the database with the correct values! Can safely be removed from the list
-//                            //currentItem.removeCategoryFromItem(currentCategory.getCategoryName());
-//
-//                            FetchrAnalytics.LOGGER.info("Category removed: " + currentItem.getMinecraftItemName() + " - " + currentCategory.getCategoryName());
-//
-//                            categoryIterator.remove();
-//
-//                        } else {
-//                            FetchrAnalytics.LOGGER.info("Category found that is not supposed to be there: " + currentItem.getMinecraftItemName() + " - " + currentCategory.getCategoryName());
-//                        }
-//                    }
-//
-//                }
-//
-//            }
-//
-//            // Check if item has any categories left, otherwise remove entire item
-//            if(currentItem.getCategories().isEmpty()) {
-//                iterator.remove();
-//            }
+        for (Map<String, Object> row : activeCategoryMap.values()) {
+            //row.put("endDate", new Date());
 
+            FetchrAnalytics.LOGGER.info(row.toString());
 
+            categoriesToDisable.add(row);
+        }
 
-        FetchrAnalytics.LOGGER.info("This many items are left in the list: " + updatedItems.size());
-
-        //debugItemInformation(updatedItems);
-
-
-
-
-
-
+        if(!categoriesToDisable.isEmpty()) {
+            disableCategories(categoriesToDisable);
+        }
 
         int rows = categoryCounterHelper(items);
 
