@@ -12,10 +12,7 @@ import nl.dacolina.fetchranalytics.components.FullItem;
 import nl.dacolina.fetchranalytics.components.Item;
 
 import java.sql.*;
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 
 public class ItemManager {
 
@@ -30,12 +27,15 @@ public class ItemManager {
 
         this.itemsCurrentlyInGame = getItemsLoadedInGame(server);
 
+        // Fix later, hopefully you read this later. This is probably unnecessary, but I do not know a fix. Thank you
+        List<FullItem> itemsBackup = getItemsLoadedInGame(server);
+
         //FetchrAnalytics.LOGGER.info(this.itemsCurrentlyInGame.toString());
-
         // This function is going to retrieve information from the database to see weather an item is in the database or not
-        createMissingItemsInDatabase(this.itemsCurrentlyInGame);
+        createMissingItemsInDatabase(itemsBackup);
 
-        // createMissingCategoriesInHistory(this.itemsCurrentlyInGame, TEMP_SERVER_ID);
+        // This function is going to add all the category information to the database.
+        createMissingCategoriesInHistory(this.itemsCurrentlyInGame, TEMP_SERVER_ID);
 
 
     }
@@ -334,12 +334,132 @@ public class ItemManager {
         return totalCategoryCount;
     }
 
+    private static ResultSet getCurrentActiveCategoriesInDatabase() {
+
+        String query = "SELECT items.item_id, items.mc_id, items.components, history_id, fetchr_category_id, itemWeightCategory, endDate " +
+                "FROM itemHistoryInCategory INNER JOIN items ON itemHistoryInCategory.item_id = items.item_id WHERE server_id = 1 or endDate = null";
+
+        try {
+            Connection dbConn = DatabaseManager.getConnection();
+            PreparedStatement stmt = dbConn.prepareStatement(query);
+
+            return stmt.executeQuery();
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        return null;
+    }
 
     private static void createMissingCategoriesInHistory(List<FullItem> items, int serverID) {
 
-        int rows = categoryCounterHelper(items);
-
+        // Items in the game currently
         List<FullItem> updatedItems = setAllItemIDsHelper(items);
+
+        // Items with categories from the current server that are active in the database
+        ResultSet rs = getCurrentActiveCategoriesInDatabase();
+
+        // Convert resultset into a map! (Apparently you can only go through a resultset once :( )
+        // Why map and not Full item class? Because history ID is needed. Maybe for the future?
+        List<Map<String, Object>> activeDatabaseItems = new ArrayList<>();
+
+        try {
+            while (rs.next()) {
+                Map<String, Object> row = new HashMap<>();
+                row.put("item_id", rs.getInt("item_id"));
+                row.put("history_id", rs.getInt("history_id"));
+                row.put("fetchr_category_id", rs.getString("fetchr_category_id"));
+                row.put("itemWeightCategory", rs.getInt("itemWeightCategory"));
+                activeDatabaseItems.add(row);
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+
+
+        for (Map<String, Object> row : activeDatabaseItems) {
+            Iterator<FullItem> iterator = updatedItems.iterator();
+
+            while (iterator.hasNext()) {
+
+                FullItem currentItem = iterator.next();
+
+                if((int) row.get("item_id") == currentItem.getDatabaseItemID()) {
+
+                }
+            }
+
+
+
+        }
+
+//        // Looping through the categories to see which items need to be added and which categories need to be updated.
+//        Iterator<FullItem> iterator = updatedItems.iterator();
+//
+//
+//        // Init statement with categories to update!
+//
+//        int counter2 = 0;
+//
+//        // Loop through items currently in game
+//        while (iterator.hasNext()) {
+//
+//            FullItem currentItem = iterator.next();
+//
+//            Iterator<Category> categoryIterator = currentItem.getCategories().iterator();
+//
+//            // Take only one category from the game at the time
+//            while (categoryIterator.hasNext()) {
+//                counter2++;
+//
+//                // Check if the current category contains the correct name and weight
+//                Category currentCategory = categoryIterator.next();
+//                // Find in database results
+//
+//                for (Map<String, Object> row : activeDatabaseItems) {
+//
+//                    if ((int) row.get("item_id") == currentItem.getDatabaseItemID()) {
+//
+////                            FetchrAnalytics.LOGGER.info(counter + ": " + currentCategory.getCategoryName() + " item name: " + currentItem.getMinecraftItemName());
+//                        // Check if category match with atleast one of the categories! Loop through categories in case the item has multiple categories.
+//                        if ((Objects.equals(currentCategory.getCategoryName(), row.get("fetchr_category_id"))) &&
+//                                (currentCategory.getCategoryWeight() == (int) row.get("itemWeightCategory"))) {
+//                            // This item is already in the database with the correct values! Can safely be removed from the list
+//                            //currentItem.removeCategoryFromItem(currentCategory.getCategoryName());
+//
+//                            FetchrAnalytics.LOGGER.info("Category removed: " + currentItem.getMinecraftItemName() + " - " + currentCategory.getCategoryName());
+//
+//                            categoryIterator.remove();
+//
+//                        } else {
+//                            FetchrAnalytics.LOGGER.info("Category found that is not supposed to be there: " + currentItem.getMinecraftItemName() + " - " + currentCategory.getCategoryName());
+//                        }
+//                    }
+//
+//                }
+//
+//            }
+//
+//            // Check if item has any categories left, otherwise remove entire item
+//            if(currentItem.getCategories().isEmpty()) {
+//                iterator.remove();
+//            }
+
+
+
+        FetchrAnalytics.LOGGER.info("This many items are left in the list: " + updatedItems.size());
+
+        //debugItemInformation(updatedItems);
+
+
+
+
+
+
+
+        int rows = categoryCounterHelper(items);
 
         String queryArguments = argumentsBuilderDatabaseQuery(AMOUNT_COLUMNS_HISTORY_TABLE, rows);
 
@@ -375,7 +495,7 @@ public class ItemManager {
 
             }
 
-            stmt.execute();
+            // stmt.execute();
 
         } catch (SQLException e) {
             e.printStackTrace();

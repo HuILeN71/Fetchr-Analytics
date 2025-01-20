@@ -19,7 +19,11 @@ public class FullItem extends Item{
         categories.add(new Category(categoryName, categoryWeight));
     }
 
-    public List<Category> getCategories() {
+    public void removeCategoryFromItem(String categoryName) {
+        categories.removeIf(category -> category.getCategoryName().equals(categoryName));
+    }
+
+        public List<Category> getCategories() {
         return categories;
     }
 
