@@ -98,7 +98,7 @@ public class ItemManager {
                         // Check if armor trim pattern is being checked. Manual for now, dont yet know how to implement
                         // a way to make this completely dynamic. For now manual controls will be added to this section.
 
-                        FetchrAnalytics.LOGGER.info(checkedComponent);
+                        FetchrAnalytics.LOGGER.debug(checkedComponent);
 
                         String engeString = "{\"" + checkedComponent + "\":" + partsOfItemChecks + "}";
 
@@ -410,17 +410,9 @@ public class ItemManager {
             String key = row.get("item_id") + ":" + row.get("fetchr_category_id") + ":" + row.get("itemWeightCategory");
             activeCategoryMap.put(key, row);
         }
-
-        boolean testRun = false;
-
+        
         // Iterate through items in the game
         for (FullItem item : updatedItems) {
-
-            if (!testRun) {
-                item.addCategoryToItem("fetchr:shipwreck", 2);
-                testRun = true;
-            }
-
 
             for (Category category : item.getCategories()) {
                 String key = item.getDatabaseItemID() + ":" + category.getCategoryName() + ":" + category.getCategoryWeight();
@@ -434,9 +426,8 @@ public class ItemManager {
                     newCategory.put("item_id", item.getDatabaseItemID());
                     newCategory.put("fetchr_category_id", category.getCategoryName());
                     newCategory.put("itemWeightCategory", category.getCategoryWeight());
-                    //newCategory.put("startDate", new Date()); // Assuming you need to set a start date
 
-                    FetchrAnalytics.LOGGER.info(newCategory.toString());
+                    FetchrAnalytics.LOGGER.debug(newCategory.toString());
 
                     newCategories.add(newCategory);
                 }
@@ -446,7 +437,7 @@ public class ItemManager {
         for (Map<String, Object> row : activeCategoryMap.values()) {
             //row.put("endDate", new Date());
 
-            FetchrAnalytics.LOGGER.info(row.toString());
+            FetchrAnalytics.LOGGER.debug(row.toString());
 
             categoriesToDisable.add(row);
         }
@@ -455,7 +446,14 @@ public class ItemManager {
             disableCategories(categoriesToDisable);
         }
 
-        int rows = categoryCounterHelper(items);
+        if(!newCategories.isEmpty()) {
+            createNewCategoriesInHistoryInDatabase(newCategories, TEMP_SERVER_ID);
+        }
+
+    }
+
+    private static void createNewCategoriesInHistoryInDatabase(List<Map<String, Object>> newCategories, int serverID) {
+        int rows = newCategories.size();
 
         String queryArguments = argumentsBuilderDatabaseQuery(AMOUNT_COLUMNS_HISTORY_TABLE, rows);
 
@@ -465,38 +463,37 @@ public class ItemManager {
             Connection dbConn = DatabaseManager.getConnection();
             PreparedStatement stmt = dbConn.prepareStatement(query);
 
+            FetchrAnalytics.LOGGER.debug(query);
+
             // Start counter
             int counter = 1;
-            for (FullItem item : updatedItems) {
+            for (Map<String, Object> itemCategory : newCategories) {
                 // Count based on category after, because item can have multiple categories!
-                for(Category category : item.getCategories()) {
-                    // Set Item ID
-                    stmt.setInt(counter, item.getDatabaseItemID());
-                    // Increase counter
-                    counter++;
+                // Set Item ID
+                stmt.setInt(counter, (int) itemCategory.get("item_id"));
+                // Increase counter
+                counter++;
 
-                    // Set current category
-                    stmt.setString(counter, category.getCategoryName());
-                    // Increase counter
-                    counter++;
+                // Set current category
+                stmt.setString(counter, (String) itemCategory.get("fetchr_category_id"));
+                // Increase counter
+                counter++;
 
-                    stmt.setInt(counter, category.getCategoryWeight());
-                    // Increase counter
-                    counter++;
+                stmt.setInt(counter, (int) itemCategory.get("itemWeightCategory"));
+                // Increase counter
+                counter++;
 
-                    stmt.setInt(counter, serverID);
-                    // Increase counter
-                    counter++;
-                }
+                stmt.setInt(counter, serverID);
+                // Increase counter
+                counter++;
 
             }
 
-            // stmt.execute();
+            stmt.execute();
 
         } catch (SQLException e) {
             e.printStackTrace();
         }
-
     }
 
     private static String argumentsBuilderDatabaseQuery(int amountOfColumns, int amountOfRows) {
