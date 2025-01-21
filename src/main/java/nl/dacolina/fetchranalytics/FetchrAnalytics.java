@@ -44,10 +44,11 @@ public class FetchrAnalytics implements ModInitializer {
 	}
 
 	private void onServerTick(MinecraftServer server) {
-		// Wait five seconds to execute next logic
+		// Wait two seconds to execute next logic
 
 		if (!wasChecked) {
 			if(startDelay > 0) {
+				// Count down until delay has passed
 				startDelay--;
 			} else {
 				FetchrAnalytics.LOGGER.info("Running after start-up checks...");
