@@ -49,6 +49,7 @@ public class AfterStartUp {
 
     public static String[][] checkingForMissingTeams(String[][] teamsFromGame, ArrayList<String> teamsFromDatabase) {
 
+
         String[][] missingTeams = new String[teamsFromGame.length][2];
 
         int counter = 0;
@@ -89,6 +90,7 @@ public class AfterStartUp {
 
         for (Team team : teams) {
             teamsArray[counter][0] = team.getName();
+
             counter++;
         }
 

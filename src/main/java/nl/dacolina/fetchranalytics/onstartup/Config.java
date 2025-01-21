@@ -66,6 +66,9 @@ public class Config {
                 
                 # The users password e.g. VerySecureP@ssw0rd!
                 password = ""
+                
+                # Temporary server ID
+                servername = 1
                 """;
         try {
             File file = new File(configDirectory + File.separator + CONFIG_FILE_NAME);

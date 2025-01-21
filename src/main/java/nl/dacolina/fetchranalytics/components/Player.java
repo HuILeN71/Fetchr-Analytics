@@ -1,4 +1,4 @@
 package nl.dacolina.fetchranalytics.components;
 
-public class BingoItem {
+public class Player {
 }
