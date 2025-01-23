@@ -4,7 +4,11 @@ import net.minecraft.scoreboard.Scoreboard;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.network.ServerPlayerEntity;
 import nl.dacolina.fetchranalytics.FetchrAnalytics;
+import nl.dacolina.fetchranalytics.managers.DatabaseManager;
 
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -24,7 +28,13 @@ public class Game {
 
         // Init teams
         this.teams = getTeamsFromCurrentGame(server);
-        //outputTeamsToConsole(teams);
+        outputTeamsToConsole(teams);
+
+        // Check if all players are in the database
+        checkForPlayersInDatabase(teams);
+
+        //Add current game to database
+        addNewGameToDatabase(teams);
 
         this.isInitialized = true;
     }
@@ -66,6 +76,16 @@ public class Game {
         return populatedTeams;
     }
 
+    private void checkForPlayersInDatabase(List<Team> teamsInGame) {
+
+        for (Team team : teamsInGame) {
+            for(Player teamMember : team.getTeamMembers()) {
+                teamMember.checkForPlayerDatabaseEntry(teamMember.getPlayerUUID(), teamMember.getPlayerName());
+            }
+        }
+
+    }
+
     private void outputTeamsToConsole(List<Team> teamsInGame) {
 
         for (Team team : teamsInGame) {
@@ -75,5 +95,21 @@ public class Game {
         }
 
     }
+
+    private int getSeedFromGame(MinecraftServer server) {
+        Scoreboard scoreboard = server.getScoreboard();
+        return -1;
+    }
+
+    private void addNewGameToDatabase(List<Team> teamsInGame) {
+        try {
+            String query = "";
+            Connection dbConn = DatabaseManager.getConnection();
+            PreparedStatement stmt = dbConn.prepareStatement(query);
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+
 
 }

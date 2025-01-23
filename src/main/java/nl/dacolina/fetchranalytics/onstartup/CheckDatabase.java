@@ -20,14 +20,11 @@ public class CheckDatabase {
     private static final String DB_CREATION_SCRIPT_GAME = """
             CREATE TABLE IF NOT EXISTS game (
                 game_id int NOT NULL AUTO_INCREMENT,
-                startDate DATE NOT NULL,
-                startTime TIME NOT NULL,
-                endDate DATE NOT NULL,
-                endTime TIME NOT NULL,
+                startDate DATE NOT NULL DEFAULT CURRENT_DATE,
+                startTime TIME NOT NULL DEFAULT CURRENT_TIME,
                 seed int NOT NULL,
-                isRow boolean NOT NULL,
-                endTimeRow int NOT NULL,
                 server_id int NOT NULL,
+                gameType VARCHAR(20) NOT NULL DEFAULT "black_out",
                 PRIMARY KEY (game_id),
                 CONSTRAINT FK_server_id_servers FOREIGN KEY (server_id)
                 REFERENCES servers(server_id)

@@ -44,9 +44,7 @@ public class Player {
             ResultSet rs = stmt.executeQuery();
 
             // Do the following if the record does not exist
-            if(rs != null) {
-                // Get first result, since there should only be one
-                rs.first();
+            if(rs.next()) {
 
                 if(!Objects.equals(rs.getString("displayName"), playerName)) {
                     // Player name has changed! Update entry in database
