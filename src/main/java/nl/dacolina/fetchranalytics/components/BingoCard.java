@@ -18,7 +18,7 @@ public class BingoCard {
     public BingoCard(MinecraftServer server) {
         this.items = getItemsFromCard(server);
 
-        debugShowCard(items);
+        // debugShowCard(items);
     }
 
     private static List<Item> getItemsFromCard(MinecraftServer server) {

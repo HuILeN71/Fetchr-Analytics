@@ -12,7 +12,7 @@ import org.slf4j.LoggerFactory;
 
 public class FetchrAnalytics implements ModInitializer {
 	public static final String MOD_ID = "fetchranalytics";
-	private static int startDelay = 50; // Two and a half seconds
+	private static int startDelay = 80; // Four seconds
 	private static boolean wasChecked = false;
 
 	public static final Logger LOGGER = LoggerFactory.getLogger(MOD_ID);
@@ -28,20 +28,9 @@ public class FetchrAnalytics implements ModInitializer {
 
 		// Register a callback for when the server starts
 		ServerTickEvents.START_SERVER_TICK.register(this::onServerTick);
-		//ServerLifecycleEvents.SERVER_STARTED.register(this::onServerStarted);
-	}
-
-	private void onServerStarted(MinecraftServer server) {
-		// Start game checks, see if database is ready to receive data.
-
-
-		// Start a GameManager Class to manage all the games
-		//
-
-		// Register event where something is to be checked every tick
-		//
 
 	}
+
 
 	private void onServerTick(MinecraftServer server) {
 		// Wait two seconds to execute next logic

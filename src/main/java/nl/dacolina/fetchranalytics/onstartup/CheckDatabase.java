@@ -47,7 +47,7 @@ public class CheckDatabase {
                 mc_uuid char(36) NOT NULL,
                 displayName varchar (20) DEFAULT 'Steve',
                 headFileLocation varchar(255) NULL,
-                availableOnDisk boolean NOT NULL,
+                availableOnDisk boolean NOT NULL DEFAULT 0,
                 PRIMARY KEY (mc_uuid)
             )
             """;
