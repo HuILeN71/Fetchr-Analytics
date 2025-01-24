@@ -46,9 +46,10 @@ public class GameManager {
         }
 
         if (gameState == GAME_RUNNING) {
-
+            if(game != null) {
+                game.tick(server);
+            }
         }
-
     }
 
     private int getGameState () {

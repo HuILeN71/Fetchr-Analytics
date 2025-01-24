@@ -496,7 +496,7 @@ public class ItemManager {
         }
     }
 
-    private static String argumentsBuilderDatabaseQuery(int amountOfColumns, int amountOfRows) {
+    public static String argumentsBuilderDatabaseQuery(int amountOfColumns, int amountOfRows) {
         StringBuilder arguments = new StringBuilder();
 
         for (int i = 0; i < amountOfRows; i++) {

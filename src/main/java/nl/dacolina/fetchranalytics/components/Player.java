@@ -10,11 +10,13 @@ public class Player {
     private List<Map<Integer, Time>> collectedItems;
     private UUID playerUUID;
     private String playerName;
+    private int lastCountOfTags;
 
     public Player(UUID playerUUID, String playerName) {
         this.playerUUID = playerUUID;
         this.playerName = playerName;
         this.collectedItems = new ArrayList<>();
+        this.lastCountOfTags = 0;
     }
 
     public String getPlayerName() {
@@ -23,6 +25,10 @@ public class Player {
 
     public UUID getPlayerUUID() {
         return this.playerUUID;
+    }
+
+    public void setLastCountOfTags(int count) {
+        this.lastCountOfTags = count;
     }
 
     public void addCollectedItem(int slotNumber, Time timeCollected) {
@@ -69,6 +75,8 @@ public class Player {
                 stmt.execute();
 
             }
+
+            dbConn.close();
 
         } catch (SQLException e) {
             e.printStackTrace();
