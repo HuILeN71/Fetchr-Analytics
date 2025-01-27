@@ -36,8 +36,9 @@ public class GameManager {
         }
 
 
-        if (gameState == STATE_SKYBOX) {
-
+        if (gameState <= STATE_SKYBOX && game != null) {
+            FetchrAnalytics.LOGGER.info("Game Cleared!");
+            game = null;
         }
 
         if (gameState == BEFORE_START && !isInitialized) {

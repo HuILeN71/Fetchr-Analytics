@@ -16,7 +16,7 @@ import java.nio.file.Path;
 public class Config {
 
     private static final String[] DATABASE_TABLES = {"servers", "game", "teams", "players", "teamInGame", "categories", "items",
-            "itemHistoryInCategory", "itemsInGame", };
+            "itemHistoryInCategory", "bingoCardItems", "itemsInGame"};
     private static final String CONFIG_FILE_NAME = "fetchranalytics-settings.toml";
     private static File configFile;
 

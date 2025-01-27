@@ -7,7 +7,7 @@ import java.util.*;
 
 public class Player {
 
-    private List<Map<Integer, Time>> collectedItems;
+    private Map<Integer, Map<Integer, String>> collectedItems;
     private UUID playerUUID;
     private String playerName;
     private int lastCountOfTags;
@@ -15,7 +15,7 @@ public class Player {
     public Player(UUID playerUUID, String playerName) {
         this.playerUUID = playerUUID;
         this.playerName = playerName;
-        this.collectedItems = new ArrayList<>();
+        this.collectedItems = new HashMap<>();
         this.lastCountOfTags = 0;
     }
 
@@ -31,10 +31,18 @@ public class Player {
         this.lastCountOfTags = count;
     }
 
-    public void addCollectedItem(int slotNumber, Time timeCollected) {
-        Map<Integer, Time> newCollectedItem = new HashMap<>();
+    public int getLastCountOfTags() {
+        return this.lastCountOfTags;
+    }
+
+    public void addCollectedItem(int slotNumber, String timeCollected) {
+        Map<Integer, String> newCollectedItem = new HashMap<>();
         newCollectedItem.put(slotNumber, timeCollected);
-        collectedItems.add(newCollectedItem);
+        collectedItems.put(slotNumber, newCollectedItem);
+    }
+
+    public Map<Integer, Map<Integer, String>> getCollectedItems() {
+        return this.collectedItems;
     }
 
     public void checkForPlayerDatabaseEntry(UUID playerUUID, String playerName) {

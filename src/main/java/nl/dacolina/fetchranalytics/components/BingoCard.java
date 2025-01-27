@@ -6,24 +6,109 @@ import net.minecraft.nbt.NbtList;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.util.Identifier;
 import nl.dacolina.fetchranalytics.FetchrAnalytics;
+import nl.dacolina.fetchranalytics.managers.DatabaseManager;
 
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 public class BingoCard {
     private static final int DEFAULT_ITEM_AMOUNT = 25;
 
-    private List<Item> items;
+
+    private List<BingoItem> items;
+    private int bingoCardID;
+
 
     public BingoCard(MinecraftServer server) {
         this.items = getItemsFromCard(server);
 
+        // Set the ID's from the items
+        setItemIDs();
+
+        this.bingoCardID = 0;
         // debugShowCard(items);
+
+
     }
 
-    private static List<Item> getItemsFromCard(MinecraftServer server) {
+    private void setItemIDs() {
+        // Init query string
+        StringBuilder query = new StringBuilder("SELECT item_id, mc_id, components FROM items WHERE ");
+        boolean isFirst = true;
 
-        List<Item> listOfItems = new ArrayList<>();
+        // Construct query to get all the id's from the necessary items
+        for (BingoItem item : this.items) {
+            //Always add item name to query
+
+            if(isFirst) {
+                query.append("(mc_id = ?");
+                isFirst = false;
+            } else {
+                query.append(" OR (mc_id = ?");
+            }
+
+            // If component is not null add components value
+            if(item.getComponent() != null) {
+                query.append(" AND components = ?)");
+            } else {
+                query.append(")");
+            }
+
+        }
+
+        // Create counter
+        int counter = 1;
+
+        try {
+            // Create connection and create prepared query
+            Connection dbConn = DatabaseManager.getConnection();
+            PreparedStatement stmt = dbConn.prepareStatement(query.toString());
+
+            // set all values
+            for (BingoItem item : this.items) {
+                // Item name and increase counter
+                stmt.setString(counter, item.getMinecraftItemName());
+                counter++;
+
+                if(item.getComponent() != null) {
+                    // Set component and increase counter
+                    stmt.setString(counter, item.getComponent());
+                    counter++;
+                }
+            }
+
+            ResultSet rs = stmt.executeQuery();
+
+            while (rs.next()) {
+                FetchrAnalytics.LOGGER.debug(rs.getInt("item_id") + " -- " + rs.getString("mc_id") + " -- " + rs.getString("components"));
+
+                for(BingoItem item : items) {
+                    if(Objects.equals(item.getMinecraftItemName(), rs.getString("mc_id")) && Objects.equals(item.getComponent(), rs.getString("components"))) {
+                        item.setItemID(rs.getInt("item_id"));
+                    }
+                }
+            }
+
+            dbConn.close();
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        // debugItemInformation(items);
+
+        FetchrAnalytics.LOGGER.debug(query.toString());
+
+    }
+
+    private static List<BingoItem> getItemsFromCard(MinecraftServer server) {
+
+        List<BingoItem> listOfItems = new ArrayList<>();
 
         //Load the items storage
         Identifier storageId = Identifier.of("fetchr", "card");
@@ -47,7 +132,7 @@ public class BingoCard {
             components.remove("minecraft:custom_name");
             components.remove("minecraft:lore");
 
-            Item newItem = null;
+            BingoItem newItem = null;
 
             if (item.contains("components", NbtElement.COMPOUND_TYPE) && !components.isEmpty()) {
 
@@ -78,16 +163,16 @@ public class BingoCard {
 //
 //                        }
 
-                        newItem = new Item(itemId, engeString);
+                        newItem = new BingoItem(itemId, engeString);
 
                     }
 
                 } else {
-                    newItem = new Item(itemId, components.toString());
+                    newItem = new BingoItem(itemId, components.toString());
                 }
 
             } else {
-                newItem = new Item(itemId, null);
+                newItem = new BingoItem(itemId, null);
             }
 
             listOfItems.add(newItem);
@@ -109,6 +194,18 @@ public class BingoCard {
             FetchrAnalytics.LOGGER.info(s.toString());
 
         }
+    }
+
+    public List<BingoItem> getItems() {
+        return this.items;
+    }
+
+    public void setBingoCardID(int cardID) {
+        this.bingoCardID = cardID;
+    }
+
+    public int getBingoCardID() {
+        return this.bingoCardID;
     }
 
 }

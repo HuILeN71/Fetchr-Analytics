@@ -307,6 +307,7 @@ public class ItemManager {
                 }
             }
 
+            dbConn.close();
 
 
         } catch (SQLException e) {

@@ -103,16 +103,28 @@ public class CheckDatabase {
             )
             """;
 
+    private static final String DB_CREATION_SCRIPT_BINGOCARDITEMS = """
+            CREATE TABLE IF NOT EXISTS bingoCardItems (
+            	bingo_card_id int NOT NULL,
+            	itemNumber tinyInt NOT NULL CHECK (itemNumber BETWEEN 0 AND 24),
+            	item_id int NOT NULL,
+            	game_id int NOT NULL,
+            	PRIMARY KEY (bingo_card_id, itemNumber),
+            	CONSTRAINT FK_item_id_bingoCardItems_item_id FOREIGN KEY (item_id)
+            	REFERENCES items(item_id),
+            	CONSTRAINT FK_game_id_bingoCardItems_game_id FOREIGN KEY (game_id)
+            	REFERENCES game(game_id)
+            )
+            """;
+
     private static final String DB_CREATION_SCRIPT_ITEMSINGAME = """
             CREATE TABLE IF NOT EXISTS itemsInGame (
-                item_id int NOT NULL,
-                game_id int NOT NULL,
+                bingo_card_id int NOT NULL,
+                itemNumber tinyint NOT NULL CHECK (itemNumber BETWEEN 0 AND 24),
                 player_id char(36) NOT NULL,
                 timeGotten TIME(2) NOT NULL,
-                CONSTRAINT FK_item_id_itemsInGame_items FOREIGN KEY (item_id)
-                REFERENCES items(item_id),
-                CONSTRAINT FK_game_id_itemsInGame_game FOREIGN KEY (game_id)
-                REFERENCES game(game_id) ON DELETE CASCADE ON UPDATE CASCADE,
+                CONSTRAINT FK_bingo_card_id_itemsInGame_bingo_card_id FOREIGN KEY (bingo_card_id, itemNumber)
+                REFERENCES bingoCardItems(bingo_card_id, itemNumber),
                 CONSTRAINT FK_player_id_itemsInGame_players FOREIGN KEY (player_id)
                 REFERENCES players(mc_uuid)
             )
@@ -165,6 +177,8 @@ public class CheckDatabase {
                 return true;
             }
 
+            dbConn.close();
+
         } catch (SQLException e) {
             e.printStackTrace();
         }
@@ -182,6 +196,8 @@ public class CheckDatabase {
 //            String query = "'SET GLOBAL (DSQEC_RUN_MQ=1)";
 //
 //            PreparedStatement stmt = dbConn.prepareStatement(query);
+
+            dbConn.close();
 
             return true;
 
@@ -228,9 +244,12 @@ public class CheckDatabase {
             stmt.addBatch(DB_CREATION_SCRIPT_CATEGORIES);
             stmt.addBatch(DB_CREATION_SCRIPT_ITEMS);
             stmt.addBatch(DB_CREATION_SCRIPT_ITEMHISTORYINCATEGORY);
+            stmt.addBatch(DB_CREATION_SCRIPT_BINGOCARDITEMS);
             stmt.addBatch(DB_CREATION_SCRIPT_ITEMSINGAME);
 
             stmt.executeBatch();
+
+            dbConn.close();
 
         } catch (SQLException e) {
             e.printStackTrace();
