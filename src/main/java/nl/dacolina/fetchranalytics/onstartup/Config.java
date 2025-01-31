@@ -15,8 +15,9 @@ import java.nio.file.Path;
 
 public class Config {
 
-    private static final String[] DATABASE_TABLES = {"servers", "game", "teams", "players", "teamInGame", "categories", "items",
+    private static final String[] DATABASE_TABLES = {"servers", "game", "gamemodes", "teams", "players", "teamInGame", "playerInGame", "categories", "items",
             "itemHistoryInCategory", "bingoCardItems", "itemsInGame"};
+    private static final String[] FETCHR_GAMEMODES = {"none", "Line", "Black_out", "Lockout", "20_Items_no_bingo", "Blind_mode", "Max_points_in_25_minutes"};
     private static final String CONFIG_FILE_NAME = "fetchranalytics-settings.toml";
     private static File configFile;
 
@@ -178,6 +179,10 @@ public class Config {
 
     public static String[] getDatabaseTables() {
         return DATABASE_TABLES;
+    }
+
+    public static String[] getFetchrGamemodes() {
+        return FETCHR_GAMEMODES;
     }
 
 }

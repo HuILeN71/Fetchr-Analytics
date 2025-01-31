@@ -57,6 +57,8 @@ public class Categories {
                 existingCategories.add(rs.getString(1));
             }
 
+            dbConn.close();
+
 
         } catch (SQLException e) {
             e.printStackTrace();
@@ -127,6 +129,7 @@ public class Categories {
 
             stmt.execute();
 
+            dbConn.close();
             return true;
 
         } catch (SQLException e) {

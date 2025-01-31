@@ -2,6 +2,7 @@ package nl.dacolina.fetchranalytics.onstartup;
 
 import nl.dacolina.fetchranalytics.FetchrAnalytics;
 import nl.dacolina.fetchranalytics.managers.DatabaseManager;
+import nl.dacolina.fetchranalytics.managers.ItemManager;
 
 import java.sql.*;
 import java.util.ArrayList;
@@ -19,15 +20,21 @@ public class CheckDatabase {
 
     private static final String DB_CREATION_SCRIPT_GAME = """
             CREATE TABLE IF NOT EXISTS game (
-                game_id int NOT NULL AUTO_INCREMENT,
-                startDate DATE NOT NULL DEFAULT CURRENT_DATE,
-                startTime TIME NOT NULL DEFAULT CURRENT_TIME,
-                seed int NOT NULL,
-                server_id int NOT NULL,
-                gameType VARCHAR(20) NOT NULL DEFAULT "black_out",
-                PRIMARY KEY (game_id),
-                CONSTRAINT FK_server_id_servers FOREIGN KEY (server_id)
-                REFERENCES servers(server_id)
+            game_id int NOT NULL AUTO_INCREMENT,
+            startDate DATE NOT NULL DEFAULT CURRENT_DATE,
+            startTime TIME NOT NULL DEFAULT CURRENT_TIME,
+            seed int NOT NULL,
+            server_id int NOT NULL,
+            PRIMARY KEY (game_id),
+            CONSTRAINT FK_server_id_servers FOREIGN KEY (server_id)
+            REFERENCES servers(server_id)
+            )
+            """;
+
+    private static final String DB_CREATION_SCRIPT_GAMEMODES  = """
+            CREATE TABLE IF NOT EXISTS gamemodes(
+                gameMode varchar(50) NOT NULL,
+             	PRIMARY KEY (gameMode)
             )
             """;
 
@@ -53,12 +60,29 @@ public class CheckDatabase {
             CREATE TABLE IF NOT EXISTS teamInGame (
                 game_id int NOT NULL,
                 teams_id varchar(200) NOT NULL,
-                player_id char(36) NOT NULL,
-                UNIQUE (game_id, teams_id, player_id),
+                gameMode varchar(50) NOT NULL,
+                lineType varchar(15) NOT NULL DEFAULT 'none',
+                UNIQUE (game_id, teams_id),
                 CONSTRAINT FK_game_id_game FOREIGN KEY (game_id)
                 REFERENCES game(game_id) ON DELETE CASCADE ON UPDATE CASCADE,
                 CONSTRAINT FK_teams_id_teams FOREIGN KEY (teams_id)
                 REFERENCES teams(fetchr_team_id),
+                CONSTRAINT FK_gameMode_gamemodes FOREIGN KEY (gameMode)
+                REFERENCES gamemodes(gameMode),
+                CONSTRAINT CHK_LINETYPE CHECK (
+                lineType IN ('none', 'row.0', 'row.1', 'row.2', 'row.3', 'row.4', 'col.0', 'col.1', 'col.2', 'col.3', 'col.4', 'diagonal.main', 'diagonal.anti') )
+            )
+            """;
+
+    private static final String DB_CREATION_SCRIPT_PLAYERINGAME = """
+            CREATE TABLE IF NOT EXISTS playerInGame (
+            	game_id int NOT NULL,
+                teams_id varchar(200) NOT NULL,
+                player_id char(36) NOT NULL,
+                distanceWalked int NOT NULL DEFAULT 0,
+                UNIQUE (game_id, teams_id, player_id),
+                CONSTRAINT FK_game_id_team_id_teamInGame FOREIGN KEY (game_id, teams_id)
+                REFERENCES teamInGame(game_id, teams_id),
                 CONSTRAINT FK_player_id_players FOREIGN KEY (player_id)
                 REFERENCES players(mc_uuid)
             )
@@ -238,9 +262,11 @@ public class CheckDatabase {
 
             stmt.addBatch(DB_CREATION_SCRIPT_SERVERS);
             stmt.addBatch(DB_CREATION_SCRIPT_GAME);
+            stmt.addBatch(DB_CREATION_SCRIPT_GAMEMODES);
             stmt.addBatch(DB_CREATION_SCRIPT_TEAMS);
             stmt.addBatch(DB_CREATION_SCRIPT_PLAYERS);
             stmt.addBatch(DB_CREATION_SCRIPT_TEAMINGAME);
+            stmt.addBatch(DB_CREATION_SCRIPT_PLAYERINGAME);
             stmt.addBatch(DB_CREATION_SCRIPT_CATEGORIES);
             stmt.addBatch(DB_CREATION_SCRIPT_ITEMS);
             stmt.addBatch(DB_CREATION_SCRIPT_ITEMHISTORYINCATEGORY);
@@ -248,6 +274,21 @@ public class CheckDatabase {
             stmt.addBatch(DB_CREATION_SCRIPT_ITEMSINGAME);
 
             stmt.executeBatch();
+
+            // Add all gamemodes
+            String[] gamemodes = Config.getFetchrGamemodes();
+            String gamemodesQuery = "INSERT INTO gamemodes (gameMode) VALUES " + ItemManager.argumentsBuilderDatabaseQuery(1, gamemodes.length);
+
+            PreparedStatement stmt2 = dbConn.prepareStatement(gamemodesQuery);
+
+            int counter = 1;
+
+            for (String gamemode : gamemodes) {
+                stmt2.setString(counter, gamemode);
+                counter++;
+            }
+
+            stmt2.execute();
 
             dbConn.close();
 

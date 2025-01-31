@@ -162,6 +162,8 @@ public class ItemManager {
                 itemsFromDatabase.add(new Item(rs.getString("mc_id"), rs.getString("components")));
             }
 
+            dbConn.close();
+
         } catch (SQLException e) {
             e.printStackTrace();
         }
@@ -241,6 +243,8 @@ public class ItemManager {
             }
 
             stmt.execute();
+
+            dbConn.close();
 
         } catch (SQLException e) {
             e.printStackTrace();
@@ -345,7 +349,11 @@ public class ItemManager {
             Connection dbConn = DatabaseManager.getConnection();
             PreparedStatement stmt = dbConn.prepareStatement(query);
 
-            return stmt.executeQuery();
+            ResultSet rs = stmt.executeQuery();
+
+            dbConn.close();
+
+            return rs;
 
         } catch (SQLException e) {
             e.printStackTrace();
@@ -370,6 +378,8 @@ public class ItemManager {
             }
 
             stmt.executeBatch();
+
+            dbConn.close();
 
 
         } catch (SQLException e) {

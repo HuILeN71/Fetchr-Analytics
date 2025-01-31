@@ -21,38 +21,63 @@ import java.sql.*;
 import java.util.*;
 
 public class Game {
-
+    private static final String GAMEMODE_LINE = "Line";
     private static final String TAG_REGEX = "fetchranalytics.has_slot.";
+    private static final String GAMEMODE_BLACK_OUT = "Black_out";
 
     private int gameID;
     private int playerCount;
+    private int teamCount;
     private boolean isInitialized;
     private List<Team> teams;
     private int seed;
     private BingoCard bingoBoard;
 
-    public Game(MinecraftServer server) {
-        // Set init value to false
+    public Game(MinecraftServer server, boolean isRestart) {
+
         this.isInitialized = false;
-        this.playerCount = 0;
-        this.gameID = 0;
 
-        // Init bingo board
-        this.bingoBoard = new BingoCard(server);
+        if(!isRestart) {
+            // Set init value to false
 
-        // Init teams
-        this.teams = getTeamsFromCurrentGame(server);
-        outputTeamsToConsole(teams);
+            this.playerCount = 0;
+            this.teamCount = 0;
+            this.gameID = 0;
 
-        this.seed = getSeedFromGame(server);
+            // Init bingo board
+            this.bingoBoard = new BingoCard(server);
 
-        // Check if all players are in the database
-        checkForPlayersInDatabase(teams);
+            // Init teams
+            this.teams = getTeamsFromCurrentGame(server);
+            outputTeamsToConsole(teams);
 
-        // Add current game to database
-        addNewGameToDatabase(teams, seed, 1);
+            this.seed = getSeedFromGame(server);
+
+            // Check if all players are in the database
+            checkForPlayersInDatabase(teams);
+
+            // Add current game to database
+            addNewGameToDatabase(teams, seed, 1);
+
+        } else {
+            // First get last game from database so that everything can be restored.
+            int[] necessaryDataFromGamesTable = getDataFromGameTable(1);
+
+            // Set gotten values
+            this.gameID = necessaryDataFromGamesTable[0];
+            this.seed = necessaryDataFromGamesTable[1];
+
+            // Init the bingo board from database
+            this.bingoBoard = new BingoCard(this.gameID);
+
+            // Restore the teams and their players (With their items) from the database
+            this.teams = restoreTeamsFromDatabase(this.gameID);
+
+
+        }
 
         this.isInitialized = true;
+
     }
 
     public void tick(MinecraftServer server) {
@@ -70,15 +95,25 @@ public class Game {
          for(ServerPlayerEntity player : server.getPlayerManager().getPlayerList()) {
              for(Team team : teams) {
                  for(Player teamMember : team.getTeamMembers()) {
-                     if(player.getUuid() == teamMember.getPlayerUUID()) {
-                         checkForTags(player, teamMember, team.getTeamName(), timeInGame, server);
+
+                     //FetchrAnalytics.LOGGER.info("Player being checked: " + teamMember.getPlayerName() + ", stored UUID: " + teamMember.getPlayerUUID() + ", game UUID: " + player.getUuid());
+
+                     if(player.getUuid().equals(teamMember.getPlayerUUID())) {
+
+                         checkForTags(player, teamMember, team, timeInGame, server);
+
+                         // Check distance
+                         teamMember.calculateDistance(player.getBlockX(), player.getBlockZ());
+
+                         FetchrAnalytics.LOGGER.info("Player walked " + teamMember.getDistanceWalked() + " meters");
+
                      }
                  }
              }
          }
     }
 
-    private int checkForTags(ServerPlayerEntity player, Player teamMember, String teamName, String timeInGame, MinecraftServer server) {
+    private int checkForTags(ServerPlayerEntity player, Player teamMember, Team team, String timeInGame, MinecraftServer server) {
         Set<String> tags = player.getCommandTags();
 
         if(tags.isEmpty()) {
@@ -96,7 +131,29 @@ public class Game {
                         addGottenItemToDatabase(teamMember.getPlayerUUID(), itemNumber, timeInGame);
                         // FetchrAnalytics.LOGGER.info(teamMember.getPlayerName() + " collected item " + itemNumber + " at time " + timeInGame);
 
-                        checkForBingoRow(server, teamName);
+                        team.addItemToVirtualBoard(itemNumber);
+
+                        if(!team.isLineBingo()) {
+                            String bingoLocation = team.checkForLineBingo();
+
+                            FetchrAnalytics.LOGGER.debug(String.valueOf(team.isLineBingo()));
+                            FetchrAnalytics.LOGGER.debug(bingoLocation);
+
+                            if(!Objects.equals(bingoLocation, "none")) {
+                                FetchrAnalytics.LOGGER.debug("Entry will be updated in database!");
+                                team.setLineBingo(true);
+                                updateGamemodeInDatabase(GAMEMODE_LINE, team.getTeamName(), bingoLocation);
+
+                            }
+
+                        }
+
+                        FetchrAnalytics.LOGGER.info(String.valueOf(team.getItemCount()));
+
+                        if(team.getItemCount() == 25) {
+                            team.setBlackOut(true);
+                            updateGamemodeInDatabase(GAMEMODE_BLACK_OUT, team.getTeamName(), "none");
+                        }
 
                     }
                     // FetchrAnalytics.LOGGER.info(tag);
@@ -109,40 +166,6 @@ public class Game {
 
         return -1;
 
-    }
-
-    private boolean checkForBingoRow(MinecraftServer server, String teamName) {
-//        Identifier storageId = Identifier.of("fetchr", "card");
-//
-//        NbtCompound nbt = server.getDataCommandStorage().get(storageId);
-//
-//        NbtList teams = nbt.getList("teams", NbtElement.COMPOUND_TYPE);
-//
-//        for (int i = 0; i < teams.size(); i++) {
-//            NbtCompound team = teams.getCompound(i);
-//
-//            FetchrAnalytics.LOGGER.info(team.getString("id"));
-//
-//            if (teamName.equals(team.getString("id"))) {
-//                // Check the has_bingo value
-//
-//                if(team.contains("has_bingo")) {
-//                    FetchrAnalytics.LOGGER.info("Contains the has_bingo value");
-//
-//                    boolean hasBingo = team.getBoolean("has_bingo");
-//
-//                    if(hasBingo) {
-//                        FetchrAnalytics.LOGGER.info("Team " + teamName + " has a bingo row or column.");
-//                    } else {
-//                        FetchrAnalytics.LOGGER.info("Does not have bingo!");
-//                    }
-//                } else {
-//                    FetchrAnalytics.LOGGER.info("Value does not exist yet (has_bingo)");
-//                }
-//            }
-//        }
-//
-        return false;
     }
 
     private void addGottenItemToDatabase(UUID playerUUID, int gottenItem, String timeGotten) {
@@ -218,6 +241,7 @@ public class Game {
                 teamMember.checkForPlayerDatabaseEntry(teamMember.getPlayerUUID(), teamMember.getPlayerName());
                 this.playerCount++;
             }
+            this.teamCount++;
         }
 
     }
@@ -251,11 +275,13 @@ public class Game {
             // Create a new game query
             String queryOne = "INSERT INTO game (seed, server_id) VALUES (?, ?)";
 
-            String queryTwo = "INSERT INTO teamInGame (game_id, teams_id, player_id) VALUES " + ItemManager.argumentsBuilderDatabaseQuery(3, this.playerCount);
+            String queryTwo = "INSERT INTO teamInGame (game_id, teams_id, gameMode) VALUES " + ItemManager.argumentsBuilderDatabaseQuery(3, this.teamCount);
 
             String queryThree = "SELECT COALESCE(MAX(bingo_card_id), 0) + 1 AS next_id FROM bingoCardItems FOR UPDATE";
 
             String queryFour = "INSERT INTO bingoCardItems (bingo_card_id, itemNumber, item_id, game_id) VALUES " + ItemManager.argumentsBuilderDatabaseQuery(4, 25);
+
+            String queryFive = "INSERT INTO playerInGame (game_id, teams_id, player_id) VALUES " + ItemManager.argumentsBuilderDatabaseQuery(3, this.playerCount);
 
             Connection dbConn = DatabaseManager.getConnection();
 
@@ -317,30 +343,53 @@ public class Game {
 
             stmtFour.executeUpdate();
 
-            // Set player in game
+            // Set teams in game
             PreparedStatement stmtTwo = dbConn.prepareStatement(queryTwo);
 
             // Reset argument counter
             counter = 1;
 
             for (Team team : teamsInGame) {
+                    // Set game id
+                stmtTwo.setInt(counter, gameID);
+                counter++;
+
+                // Set team name
+                stmtTwo.setString(counter, team.getTeamName());
+                counter++;
+
+                // Set team member
+                stmtTwo.setString(counter, "none");
+                counter++;
+
+            }
+
+            stmtTwo.executeUpdate();
+
+            // Set players in game
+            PreparedStatement stmtFive = dbConn.prepareStatement(queryFive);
+
+            counter = 1;
+
+            for (Team team : teamsInGame) {
                 for(Player teamMember : team.getTeamMembers()) {
                     // Set game id
-                    stmtTwo.setInt(counter, gameID);
+                    stmtFive.setInt(counter, this.gameID);
                     counter++;
 
                     // Set team name
-                    stmtTwo.setString(counter, team.getTeamName());
+                    stmtFive.setString(counter, team.getTeamName());
                     counter++;
 
                     // Set team member
-                    stmtTwo.setString(counter, String.valueOf( teamMember.getPlayerUUID()));
+                    stmtFive.setString(counter, String.valueOf( teamMember.getPlayerUUID()));
                     counter++;
 
                 }
             }
 
-            stmtTwo.executeUpdate();
+            stmtFive.executeUpdate();
+
             dbConn.commit();
 
             dbConn.close();
@@ -369,6 +418,155 @@ public class Game {
         }
 
         return "0:0:0.0";
+    }
+
+    private void updateGamemodeInDatabase(String gameMode, String teamName, String lineType) {
+
+        String query = "UPDATE teamInGame SET gameMode = ?, lineType = ? WHERE game_id = ? AND teams_id = ?";
+
+        try {
+            Connection dbConn = DatabaseManager.getConnection();
+
+            PreparedStatement stmt = dbConn.prepareStatement(query);
+
+            // Set gameMode
+            stmt.setString(1, gameMode);
+
+            // Set linetype
+            stmt.setString(2, lineType);
+
+            // Set gameid
+            stmt.setInt(3, this.gameID);
+
+            // Set team id
+            stmt.setString(4, teamName);
+
+            stmt.execute();
+
+            dbConn.close();
+
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+
+    }
+
+    private int[] getDataFromGameTable(int serverId) {
+        String query = "SELECT g.game_id, g.seed FROM game g WHERE server_id = ? ORDER BY game_id DESC LIMIT 1";
+
+        int[] gameData = new int[2];
+
+        try {
+            Connection dbConn = DatabaseManager.getConnection();
+
+            PreparedStatement stmt = dbConn.prepareStatement(query);
+
+            stmt.setInt(1, serverId);
+
+            ResultSet rs = stmt.executeQuery();
+
+            while(rs.next()) {
+                gameData[0] = rs.getInt("game_id");
+                gameData[1] = rs.getInt("seed");
+            }
+
+            dbConn.close();
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        return gameData;
+
+    }
+
+    private List<Team> restoreTeamsFromDatabase(int gameID) {
+
+        // Team tracker map
+        Map<String,Boolean> existingTeams = new HashMap<>();
+
+        // Init teams list
+        List<Team> teamsFromDatabase = new ArrayList<>();
+
+        // Get query ready
+        String query = "SELECT tig.teams_id, tig.gameMode, tig.lineType, pig.player_id, p.displayName, distanceWalked FROM teamInGame tig INNER JOIN playerInGame pig ON tig.teams_id = pig.teams_id AND tig.game_id = pig.game_id INNER JOIN players p ON pig.player_id  = p.mc_uuid WHERE tig.game_id = ?";
+
+        // Get teams and players from current game ID and create the teams with their corresponding players
+        try {
+            Connection dbConn = DatabaseManager.getConnection();
+
+            PreparedStatement stmt = dbConn.prepareStatement(query);
+
+            stmt.setInt(1, gameID);
+
+            ResultSet rs = stmt.executeQuery();
+
+            while (rs.next()) {
+                String teamName = rs.getString("teams_id");
+
+                if(!existingTeams.containsKey(teamName)) {
+
+                    existingTeams.put(teamName, true);
+                    Team team = new Team(teamName);
+
+                    String gameMode = rs.getString("gameMode");
+                    String lineType = rs.getString("lineType");
+
+                    if(!Objects.equals(lineType, "none")) {
+                        team.setLineBingo(true);
+                    }
+
+                    if(Objects.equals(lineType, "Black_out")) {
+                        team.setBlackOut(true);
+                    }
+
+                    teamsFromDatabase.add(team);
+                    this.teamCount++;
+
+                }
+
+                UUID currentPlayerID = UUID.fromString(rs.getString("player_id"));
+                String displayName = rs.getString("displayName");
+
+
+                for(Team team : teamsFromDatabase) {
+                    if(Objects.equals(team.getTeamName(), teamName)) {
+                        team.addTeamMember(currentPlayerID, displayName);
+
+                        this.playerCount++;
+
+                        for(Player player : team.getTeamMembers()) {
+                            if(player.getPlayerUUID() == currentPlayerID) {
+                                player.setDistanceWalked(rs.getInt("distanceWalked"));
+                                // Init all the items that the player has gotten
+
+                                String queryTwo = "SELECT bci.itemNumber, bci.item_id, iig.player_id, iig.timeGotten FROM bingoCardItems bci INNER JOIN itemsInGame iig ON bci.bingo_card_id = iig.bingo_card_id AND bci.itemNumber = iig.itemNumber WHERE bci.game_id  = ? AND player_id = ?";
+
+                                PreparedStatement stmtTwo = dbConn.prepareStatement(queryTwo);
+
+                                stmtTwo.setInt(1, gameID);
+                                stmtTwo.setString(2, String.valueOf(player.getPlayerUUID()));
+
+                                ResultSet rsTwo = stmtTwo.executeQuery();
+
+                                while(rsTwo.next()) {
+                                    player.addCollectedItem(rsTwo.getInt("itemNumber"), rsTwo.getString("timeGotten"));
+                                }
+                            }
+                        }
+                    }
+                }
+
+            }
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        return teamsFromDatabase;
+
     }
 
 

@@ -43,12 +43,14 @@ public class GameManager {
 
         if (gameState == BEFORE_START && !isInitialized) {
             // Init new Game
-            game = new Game(server);
+            game = new Game(server, false);
         }
 
         if (gameState == GAME_RUNNING) {
             if(game != null) {
                 game.tick(server);
+            } else {
+                game = new Game(server, true);
             }
         }
     }

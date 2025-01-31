@@ -194,6 +194,8 @@ public class AfterStartUp {
                 existingTables.add(rs.getString(1));
             }
 
+            dbConn.close();
+
 
         } catch (SQLException e) {
             e.printStackTrace();

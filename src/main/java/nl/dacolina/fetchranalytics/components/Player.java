@@ -5,18 +5,26 @@ import nl.dacolina.fetchranalytics.managers.DatabaseManager;
 import java.sql.*;
 import java.util.*;
 
+import static java.lang.Math.sqrt;
+
 public class Player {
 
     private Map<Integer, Map<Integer, String>> collectedItems;
     private UUID playerUUID;
     private String playerName;
     private int lastCountOfTags;
+    private int previousX;
+    private int previousZ;
+    private int distanceWalked;
 
     public Player(UUID playerUUID, String playerName) {
         this.playerUUID = playerUUID;
         this.playerName = playerName;
         this.collectedItems = new HashMap<>();
         this.lastCountOfTags = 0;
+        this.previousX = 0;
+        this.previousZ = 0;
+        this.distanceWalked = 0;
     }
 
     public String getPlayerName() {
@@ -89,5 +97,22 @@ public class Player {
         } catch (SQLException e) {
             e.printStackTrace();
         }
+    }
+
+    public void calculateDistance(int newX, int newZ) {
+        if (this.previousX != 0 && this.previousZ != 0) {
+            this.distanceWalked += (int) sqrt(((newX - this.previousX) * (newX - this.previousX)) + ((newZ - this.previousZ) * (newZ - this.previousZ)));
+        }
+
+        this.previousX = newX;
+        this.previousZ = newZ;
+    }
+
+    public int getDistanceWalked() {
+        return distanceWalked;
+    }
+
+    public void setDistanceWalked(int distance) {
+        this.distanceWalked = distance;
     }
 }

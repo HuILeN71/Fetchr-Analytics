@@ -25,6 +25,7 @@ public class BingoCard {
 
 
     public BingoCard(MinecraftServer server) {
+
         this.items = getItemsFromCard(server);
 
         // Set the ID's from the items
@@ -33,6 +34,70 @@ public class BingoCard {
         this.bingoCardID = 0;
         // debugShowCard(items);
 
+    }
+
+    public BingoCard(int gameID) {
+        this.items = restoreItemsFromDatabase(gameID);
+
+        this.bingoCardID = getCurrentBingoCardID(gameID);
+    }
+
+    private int getCurrentBingoCardID(int gameID) {
+        String query = "SELECT bci.bingo_card_id FROM bingoCardItems bci WHERE bci.game_id = ? LIMIT 1";
+
+        int bingoBoardID = 0;
+
+        try {
+            Connection dbConn = DatabaseManager.getConnection();
+
+            PreparedStatement stmt = dbConn.prepareStatement(query);
+
+            stmt.setInt(1, gameID);
+
+            ResultSet rs = stmt.executeQuery();
+
+            while(rs.next()) {
+                bingoBoardID =  rs.getInt("bingo_card_id");
+            }
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        return bingoBoardID;
+    }
+
+    private List<BingoItem> restoreItemsFromDatabase(int gameID) {
+        // Init list for bingo items
+        List<BingoItem> bingoCardDatabase = new ArrayList<>();
+
+        // Set query
+        String query = "SELECT bci.bingo_card_id, bci.itemNumber, bci.item_id, i.mc_id, i.components FROM bingoCardItems bci INNER JOIN items i ON bci.item_id = i.item_id WHERE bci.game_id = ? ORDER BY bingo_card_id, itemNumber";
+
+        // Fetch items from database (id, mc_id, component)
+        try {
+            Connection dbConn = DatabaseManager.getConnection();
+
+            PreparedStatement stmt = dbConn.prepareStatement(query);
+
+            stmt.setInt(1, gameID);
+
+            ResultSet rs = stmt.executeQuery();
+
+            while(rs.next()) {
+                BingoItem item = new BingoItem(rs.getString("mc_id"), rs.getString("components"));
+                // Set item id now, since it is already here
+                item.setItemID(rs.getInt("item_id"));
+                bingoCardDatabase.add(item);
+            }
+
+            dbConn.close();
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        return bingoCardDatabase;
 
     }
 
