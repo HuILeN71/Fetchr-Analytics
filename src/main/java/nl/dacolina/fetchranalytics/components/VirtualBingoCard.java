@@ -25,7 +25,7 @@ public class VirtualBingoCard {
 
     public void setValueInVirtualBoard(int itemID) {
         this.virtualBoard[getRowPos(itemID)][getColumnPos(itemID)] = true;
-        debugVirtualBingoCard();
+        //debugVirtualBingoCard();
     }
 
     private int getRowPos (int itemID) {

@@ -7,6 +7,8 @@ import net.minecraft.scoreboard.ScoreboardObjective;
 import net.minecraft.server.MinecraftServer;
 import nl.dacolina.fetchranalytics.FetchrAnalytics;
 import nl.dacolina.fetchranalytics.components.Game;
+import nl.dacolina.fetchranalytics.components.Player;
+import nl.dacolina.fetchranalytics.components.Team;
 
 public class GameManager {
     private static final int STATE_SKYBOX = 2;
@@ -37,8 +39,16 @@ public class GameManager {
 
 
         if (gameState <= STATE_SKYBOX && game != null) {
-            FetchrAnalytics.LOGGER.info("Game Cleared!");
+            // Sync last stats for all players
+            for(Team team : game.getTeams()) {
+                for(Player player : team.getTeamMembers()) {
+                    // Sync last distance walked
+                    player.updateDistanceInDatabase(game.getGameID());
+                }
+            }
+
             game = null;
+            FetchrAnalytics.LOGGER.info("Game Cleared!");
         }
 
         if (gameState == BEFORE_START && !isInitialized) {

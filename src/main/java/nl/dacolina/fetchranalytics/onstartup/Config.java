@@ -185,4 +185,29 @@ public class Config {
         return FETCHR_GAMEMODES;
     }
 
+    public static int getServerID () {
+
+        int serverID = -1;
+
+        FabricLoader.getInstance().getConfigDir();
+
+        Path settingFile = Path.of(FabricLoader.getInstance().getConfigDir() + File.separator + CONFIG_FILE_NAME);
+
+        try {
+            TomlParseResult result = Toml.parse(settingFile);
+
+            var databaseSettings = result.getTable("database_settings");
+
+            if(databaseSettings != null) {
+                serverID = Math.toIntExact(databaseSettings.getLong("servername"));
+            }
+
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        return serverID;
+    }
+
 }

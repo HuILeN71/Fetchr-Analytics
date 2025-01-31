@@ -159,7 +159,7 @@ public class DatapackManager {
         try (FileWriter fw = new FileWriter(filePath, true);
              BufferedWriter bw = new BufferedWriter(fw)) {
             bw.write(lineToAdd); // Write the new line
-            bw.newLine(); // Add a newline character
+            //bw.newLine(); // Add a newline character
         }
     }
 

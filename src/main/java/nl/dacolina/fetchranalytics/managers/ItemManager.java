@@ -10,6 +10,7 @@ import nl.dacolina.fetchranalytics.FetchrAnalytics;
 import nl.dacolina.fetchranalytics.components.Category;
 import nl.dacolina.fetchranalytics.components.FullItem;
 import nl.dacolina.fetchranalytics.components.Item;
+import nl.dacolina.fetchranalytics.onstartup.Config;
 
 import java.awt.*;
 import java.sql.*;
@@ -18,7 +19,7 @@ import java.util.List;
 
 public class ItemManager {
 
-    private static final int TEMP_SERVER_ID = 1;
+    private static final int TEMP_SERVER_ID = Config.getServerID();
     private static final int AMOUNT_COLUMNS_ITEM_TABLE = 4;
     private static final int AMOUNT_COLUMNS_HISTORY_TABLE = 4;
 

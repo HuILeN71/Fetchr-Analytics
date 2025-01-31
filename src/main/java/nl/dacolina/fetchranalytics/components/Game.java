@@ -14,6 +14,7 @@ import net.minecraft.util.Identifier;
 import nl.dacolina.fetchranalytics.FetchrAnalytics;
 import nl.dacolina.fetchranalytics.managers.DatabaseManager;
 import nl.dacolina.fetchranalytics.managers.ItemManager;
+import nl.dacolina.fetchranalytics.onstartup.Config;
 import org.checkerframework.checker.units.qual.C;
 import org.mariadb.jdbc.Statement;
 
@@ -32,6 +33,7 @@ public class Game {
     private List<Team> teams;
     private int seed;
     private BingoCard bingoBoard;
+    private int tickDelay;
 
     public Game(MinecraftServer server, boolean isRestart) {
 
@@ -49,7 +51,7 @@ public class Game {
 
             // Init teams
             this.teams = getTeamsFromCurrentGame(server);
-            outputTeamsToConsole(teams);
+            //outputTeamsToConsole(teams);
 
             this.seed = getSeedFromGame(server);
 
@@ -57,11 +59,11 @@ public class Game {
             checkForPlayersInDatabase(teams);
 
             // Add current game to database
-            addNewGameToDatabase(teams, seed, 1);
+            addNewGameToDatabase(teams, seed, Config.getServerID());
 
         } else {
             // First get last game from database so that everything can be restored.
-            int[] necessaryDataFromGamesTable = getDataFromGameTable(1);
+            int[] necessaryDataFromGamesTable = getDataFromGameTable(Config.getServerID());
 
             // Set gotten values
             this.gameID = necessaryDataFromGamesTable[0];
@@ -76,6 +78,7 @@ public class Game {
 
         }
 
+        this.tickDelay = 1200;
         this.isInitialized = true;
 
     }
@@ -102,10 +105,19 @@ public class Game {
 
                          checkForTags(player, teamMember, team, timeInGame, server);
 
-                         // Check distance
-                         teamMember.calculateDistance(player.getBlockX(), player.getBlockZ());
+                         // Check distance if is in game and not in the lobby or any other dimension!
+                         if(player.getWorld().getRegistryKey().getValue().toString().equals("fetchr:default")) {
+                             teamMember.calculateDistance(player.getBlockX(), player.getBlockZ(), this.gameID);
+                         }
 
-                         FetchrAnalytics.LOGGER.info("Player walked " + teamMember.getDistanceWalked() + " meters");
+                         FetchrAnalytics.LOGGER.debug("Player walked " + teamMember.getDistanceWalked() + " meters");
+
+                         if(this.tickDelay != 0) {
+                             this.tickDelay--;
+                         } else {
+                             FetchrAnalytics.LOGGER.debug(String.valueOf(player.getWorld().getRegistryKey()));
+                             this.tickDelay = 1200;
+                         }
 
                      }
                  }
@@ -145,22 +157,16 @@ public class Game {
                                 updateGamemodeInDatabase(GAMEMODE_LINE, team.getTeamName(), bingoLocation);
 
                             }
-
                         }
 
-                        FetchrAnalytics.LOGGER.info(String.valueOf(team.getItemCount()));
+                        FetchrAnalytics.LOGGER.debug(String.valueOf(team.getItemCount()));
 
                         if(team.getItemCount() == 25) {
                             team.setBlackOut(true);
                             updateGamemodeInDatabase(GAMEMODE_BLACK_OUT, team.getTeamName(), "none");
                         }
-
                     }
-                    // FetchrAnalytics.LOGGER.info(tag);
-
                 }
-
-
             }
         }
 
@@ -184,7 +190,7 @@ public class Game {
             // Set player id
             stmt.setString(3, String.valueOf(playerUUID));
 
-            // timeGottem
+            // timeGotten
             stmt.setString(4, timeGotten);
 
             stmt.execute();
@@ -197,8 +203,16 @@ public class Game {
 
     }
 
+    public List<Team> getTeams() {
+        return this.teams;
+    }
+
     public boolean getIsInitialized() {
         return this.isInitialized;
+    }
+
+    public int getGameID() {
+        return this.gameID;
     }
 
     private List<Team> getTeamsFromCurrentGame(MinecraftServer server) {
@@ -560,6 +574,8 @@ public class Game {
                 }
 
             }
+
+            dbConn.close();
 
         } catch (SQLException e) {
             e.printStackTrace();

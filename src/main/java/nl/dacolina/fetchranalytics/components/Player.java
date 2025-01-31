@@ -16,6 +16,8 @@ public class Player {
     private int previousX;
     private int previousZ;
     private int distanceWalked;
+    private int lastDistanceUpdatedToDatabase;
+    private int playerTickCounter;
 
     public Player(UUID playerUUID, String playerName) {
         this.playerUUID = playerUUID;
@@ -25,6 +27,9 @@ public class Player {
         this.previousX = 0;
         this.previousZ = 0;
         this.distanceWalked = 0;
+        this.lastDistanceUpdatedToDatabase = 0;
+        this.playerTickCounter = 1200;
+
     }
 
     public String getPlayerName() {
@@ -99,14 +104,48 @@ public class Player {
         }
     }
 
-    public void calculateDistance(int newX, int newZ) {
+    public void calculateDistance(int newX, int newZ, int gameID) {
         if (this.previousX != 0 && this.previousZ != 0) {
             this.distanceWalked += (int) sqrt(((newX - this.previousX) * (newX - this.previousX)) + ((newZ - this.previousZ) * (newZ - this.previousZ)));
+        }
+
+        if (this.playerTickCounter != 0 && this.distanceWalked > this.lastDistanceUpdatedToDatabase) {
+            this.playerTickCounter--;
+        } else {
+            this.playerTickCounter = 1200;
+            this.lastDistanceUpdatedToDatabase = this.distanceWalked;
+            updateDistanceInDatabase(gameID);
         }
 
         this.previousX = newX;
         this.previousZ = newZ;
     }
+
+    public void updateDistanceInDatabase(int gameID) {
+
+        String query = "UPDATE playerInGame SET distanceWalked = ? WHERE game_id = ? AND player_id = ?";
+
+        try {
+            Connection dbConn = DatabaseManager.getConnection();
+
+            PreparedStatement stmt = dbConn.prepareStatement(query);
+
+            stmt.setInt(1, this.distanceWalked);
+
+            stmt.setInt(2, gameID);
+
+            stmt.setString(3, String.valueOf(this.playerUUID));
+
+            stmt.execute();
+
+            dbConn.close();
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+    }
+
 
     public int getDistanceWalked() {
         return distanceWalked;
