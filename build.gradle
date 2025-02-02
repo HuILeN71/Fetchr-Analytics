@@ -1,6 +1,7 @@
 plugins {
 	id 'fabric-loom' version '1.8-SNAPSHOT'
 	id 'maven-publish'
+	id("com.gradleup.shadow") version "9.0.0-beta6"
 }
 
 version = project.mod_version
@@ -22,6 +23,11 @@ fabricApi {
 	configureDataGeneration()
 }
 
+shadowJar {
+	relocate 'org.antlr.v4.runtime', 'yourmod.shadow.antlr'
+	minimize()
+}
+
 dependencies {
 	// To change the versions see the gradle.properties file
 	minecraft "com.mojang:minecraft:${project.minecraft_version}"
@@ -31,10 +37,19 @@ dependencies {
 	// Fabric API. This is technically optional, but you probably want it anyway.
 	modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
 
+	include 'org.mariadb.jdbc:mariadb-java-client:3.5.1'
+	include 'org.tomlj:tomlj:1.1.1'
+	include 'com.zaxxer:HikariCP:6.2.1'
+	include group: 'net.lingala.zip4j', name: 'zip4j', version: '2.11.5'
+
 	implementation 'org.mariadb.jdbc:mariadb-java-client:3.5.1'
 	implementation 'org.tomlj:tomlj:1.1.1'
 	implementation 'com.zaxxer:HikariCP:6.2.1'
 	implementation group: 'net.lingala.zip4j', name: 'zip4j', version: '2.11.5'
+
+	implementation "org.antlr:antlr4-runtime:4.13.2"
+	include "org.antlr:antlr4-runtime:4.13.2"
+
 }
 
 processResources {

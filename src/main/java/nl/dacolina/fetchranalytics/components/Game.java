@@ -15,8 +15,6 @@ import nl.dacolina.fetchranalytics.FetchrAnalytics;
 import nl.dacolina.fetchranalytics.managers.DatabaseManager;
 import nl.dacolina.fetchranalytics.managers.ItemManager;
 import nl.dacolina.fetchranalytics.onstartup.Config;
-import org.checkerframework.checker.units.qual.C;
-import org.mariadb.jdbc.Statement;
 
 import java.sql.*;
 import java.util.*;
