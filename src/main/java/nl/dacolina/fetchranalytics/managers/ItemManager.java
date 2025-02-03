@@ -19,7 +19,7 @@ import java.util.List;
 
 public class ItemManager {
 
-    private static final int TEMP_SERVER_ID = Config.getServerID();
+    private static final int SERVER_ID = Config.getServerID();
     private static final int AMOUNT_COLUMNS_ITEM_TABLE = 4;
     private static final int AMOUNT_COLUMNS_HISTORY_TABLE = 4;
 
@@ -38,7 +38,7 @@ public class ItemManager {
         createMissingItemsInDatabase(itemsBackup);
 
         // This function is going to add all the category information to the database.
-        createMissingCategoriesInHistory(this.itemsCurrentlyInGame, TEMP_SERVER_ID);
+        createMissingCategoriesInHistory(this.itemsCurrentlyInGame, SERVER_ID);
 
 
     }
@@ -344,7 +344,7 @@ public class ItemManager {
     private static ResultSet getCurrentActiveCategoriesInDatabase() {
 
         String query = "SELECT items.item_id, items.mc_id, items.components, history_id, fetchr_category_id, itemWeightCategory, endDate " +
-                "FROM itemHistoryInCategory INNER JOIN items ON itemHistoryInCategory.item_id = items.item_id WHERE server_id = 1 AND endDate IS NULL";
+                "FROM itemHistoryInCategory INNER JOIN items ON itemHistoryInCategory.item_id = items.item_id WHERE server_id = " + SERVER_ID + " AND endDate IS NULL";
 
         try {
             Connection dbConn = DatabaseManager.getConnection();
@@ -459,7 +459,7 @@ public class ItemManager {
         }
 
         if(!newCategories.isEmpty()) {
-            createNewCategoriesInHistoryInDatabase(newCategories, TEMP_SERVER_ID);
+            createNewCategoriesInHistoryInDatabase(newCategories, SERVER_ID);
         }
 
     }
